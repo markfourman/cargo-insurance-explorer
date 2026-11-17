@@ -2,7 +2,7 @@
 
 A free browser game about marine cargo insurance. Pick a cargo, pick an Incoterm and pick your cover. Then let the dice decide who pays when the voyage goes wrong: the insurer, the carrier, or **you**.
 
-**Play it:** https://markfourman.github.io/cargo-insurance-gamble/
+**Play it:** https://markfourman.github.io/cargo-insurance-explorer/
 
 Built by [Mark Fourmanovskis](https://www.linkedin.com/in/mark-fourmanovskis/) for SCM930 Transportation, Seneca Polytechnic (Supply Chain Management).
 
@@ -71,13 +71,13 @@ It is one file with no build step and no external libraries. It stores nothing a
 
 - **Run it locally:** double-click `index.html`.
 - **Publish on GitHub Pages:**
-  1. On GitHub, create a new public repository named `cargo-insurance-gamble`.
+  1. On GitHub, create a new public repository named `cargo-insurance-explorer`.
   2. Choose **Add file → Upload files**, drag in `index.html`, `og-image.png` (the picture LinkedIn shows in the link preview) and `README.md`, then **Commit changes**.
   3. Go to **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, pick **main** and **/ (root)**, then **Save**.
-  4. Wait about a minute. The game appears at `https://markfourman.github.io/cargo-insurance-gamble/`.
+  4. Wait about a minute. The game appears at `https://markfourman.github.io/cargo-insurance-explorer/`.
   5. Open the link on your phone to check it, then paste it into your LinkedIn post.
 
-  If you use a different repository name, change the two `markfourman.github.io/cargo-insurance-gamble` links in the `<head>` of `index.html` (the preview-card address and picture).
+  If you use a different repository name, change the two `markfourman.github.io/cargo-insurance-explorer` links in the `<head>` of `index.html` (the preview-card address and picture).
 
 ## Sources
 
