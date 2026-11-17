@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insure It or Risk It? A cargo insurance game</title>
+<meta name="description" content="Pick a cargo, an Incoterm and your insurance cover, then let the dice decide who pays when the voyage goes wrong. Built from SCM930 marine cargo insurance.">
+<meta name="theme-color" content="#0b1f3a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Insure It or Risk It? A cargo insurance game">
+<meta property="og:description" content="Pick a cargo, an Incoterm and your cover. Let the dice decide who pays: the insurer, the carrier or you. Odds are illustrative, not actuarial.">
+<meta property="og:url" content="https://markfourman.github.io/cargo-insurance-gamble/">
+<meta property="og:image" content="https://markfourman.github.io/cargo-insurance-gamble/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B2%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --red:#c8102e; --red-d:#9b0c24; --red-l:#fde8ec;
+  --navy:#0b1f3a; --ink:#1c2b41; --muted:#5a6b82;
+  --bg:#f5f3ef; --card:#fff; --line:#e4dfd7;
+  --green:#1f9d6b; --green-d:#13744e; --green-l:#e3f6ee;
+  --amber:#e9a21b; --amber-d:#9a6a05; --amber-l:#fff3d9;
+  --seller:#2f6fed; --buyer:#7c4dff;
+  --r:16px; --sh:0 8px 28px rgba(11,31,58,.09);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);-webkit-text-size-adjust:100%}
+h1,h2,h3,h4{line-height:1.2;margin:0;color:var(--navy)}
+p{margin:0 0 .6em}
+a{color:var(--red-d)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #1b6ef3;outline-offset:2px}
+.skip{position:absolute;left:-999px;top:0;background:#fff;padding:8px 12px;z-index:100}
+.skip:focus{left:8px;top:8px}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+small,.small{font-size:.85rem;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- hero ---------- */
+.hero{background:linear-gradient(135deg,#0b1f3a 0%,#17345c 58%,#8d1228 130%);color:#fff;padding:34px 0 40px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;inset:auto 0 0 0;height:10px;background:var(--red)}
+.hero h1{color:#fff;font-size:clamp(2rem,6vw,3.3rem);letter-spacing:-.02em}
+.hero h1 em{font-style:normal;color:#ff8da1}
+.hero p.sub{font-size:clamp(1.05rem,2.6vw,1.3rem);max-width:640px;margin:12px 0 18px;color:#e5ecf6}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-block;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);font-size:.8rem;color:#fff}
+@media(max-width:520px){.hero{padding:24px 0 30px}.hero p.sub{margin:8px 0 14px}.chips{gap:6px}.hero .by{margin-top:14px}}
+.hero .by{margin-top:18px;font-size:.9rem;color:#c9d6e8}
+.hero .by a{color:#fff}
+.illus{display:inline-flex;align-items:center;gap:6px;background:var(--amber-l);color:#6b4700;border:1px solid #f0cf86;border-radius:99px;padding:3px 10px;font-size:.8rem;font-weight:600}
+.hero .illus{margin-top:14px}
+
+/* ---------- stepper ---------- */
+.stepper{position:sticky;top:0;z-index:30;background:rgba(245,243,239,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.stepper ol{list-style:none;margin:0 auto;padding:8px 12px;max-width:980px;display:flex;gap:6px;justify-content:space-between}
+.stepper li{flex:1;min-width:0}
+.step{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border:0;background:transparent;border-radius:12px;cursor:pointer;padding:4px}
+.step .n{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.9rem;background:#fff;border:2px solid var(--line);color:var(--muted)}
+.step .t{display:none;font-weight:700;font-size:.88rem;color:var(--muted);white-space:nowrap}
+.step.done .n{background:var(--navy);border-color:var(--navy);color:#fff}
+.step.cur .n{background:var(--red);border-color:var(--red);color:#fff}
+.step.cur .t{display:inline;color:var(--navy)}
+.step:disabled{cursor:not-allowed;opacity:.5}
+@media(min-width:760px){.step .t{display:inline}}
+
+/* ---------- panels ---------- */
+main{padding:20px 0 8px;outline:none}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--sh);padding:20px 16px 18px;margin-bottom:18px}
+@media(min-width:760px){.panel{padding:26px 28px 22px}}
+.panel>h2{font-size:clamp(1.35rem,3.6vw,1.8rem);display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.panel>h2 .num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:1rem}
+.lead{color:var(--muted);margin-bottom:16px}
+h3.sec{font-size:1.1rem;margin:22px 0 8px}
+.grid{display:grid;gap:12px}
+.cargo-grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.card{background:var(--card);border:2px solid var(--line);border-radius:var(--r);padding:14px 16px;text-align:left}
+.choice{cursor:pointer;display:flex;flex-direction:column;gap:5px;min-height:56px;transition:transform .12s,border-color .12s,box-shadow .12s}
+.choice:hover:not(:disabled){border-color:#c3bbad;transform:translateY(-1px)}
+.choice.sel{border-color:var(--red);box-shadow:0 0 0 4px var(--red-l)}
+.choice:disabled{opacity:.42;cursor:not-allowed}
+.big-emoji{font-size:2.3rem;line-height:1}
+.ctitle{font-weight:800;font-size:1.1rem;color:var(--navy)}
+.route{font-size:.9rem;color:var(--muted)}
+.facts{font-size:.9rem}
+.meters{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.82rem;color:var(--muted)}
+.meter b{letter-spacing:2px;color:var(--red);font-weight:400}
+.blurb{font-size:.9rem;color:var(--ink)}
+
+.nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:22px;flex-wrap:wrap}
+.btn{min-height:48px;padding:11px 20px;border-radius:12px;border:2px solid var(--navy);background:#fff;font-weight:800;cursor:pointer;color:var(--navy);transition:transform .1s,background .1s}
+.btn:hover:not(:disabled){transform:translateY(-1px);background:#f1eee8}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.primary:hover:not(:disabled){background:var(--red-d)}
+.btn.dark{background:var(--navy);color:#fff}
+.btn.dark:hover:not(:disabled){background:#173458}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.small{min-height:40px;padding:7px 14px;font-size:.9rem}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.segbtn{min-height:50px;padding:8px 16px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.segbtn.sel{border-color:var(--red);background:var(--red-l);color:var(--red-d)}
+.segbtn:disabled{opacity:.4;cursor:not-allowed}
+.segbtn small{display:block;font-weight:500}
+
+.callout{border-radius:14px;padding:12px 14px;margin:14px 0;background:#eef4ff;border:1px solid #cfdcf8;font-size:.95rem}
+.callout.warn{background:var(--amber-l);border-color:#f0cf86}
+.callout.good{background:var(--green-l);border-color:#b6e5cf}
+.callout.bad{background:var(--red-l);border-color:#f3b8c3}
+.callout b{color:var(--navy)}
+
+/* ---------- Incoterms ---------- */
+.terms{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.term{border:2px solid var(--line);background:#fff;border-radius:12px;padding:8px 8px;cursor:pointer;text-align:center;min-height:62px;display:flex;flex-direction:column;justify-content:center;gap:1px}
+.term b{font-size:1.1rem;color:var(--navy)}
+.term small{font-size:.72rem;line-height:1.2}
+.term.sel{border-color:var(--red);background:var(--red-l)}
+.term:disabled{opacity:.38;cursor:not-allowed}
+.term .ins{font-size:.7rem;font-weight:800;color:var(--green-d)}
+.group-h{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 6px;font-weight:700}
+.terminfo{border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:12px;background:#fcfbf9}
+.terminfo h4{font-size:1.05rem;margin-bottom:4px}
+.tag{display:inline-block;font-size:.75rem;font-weight:800;border-radius:99px;padding:2px 9px;background:#eef1f6;color:var(--navy);margin-right:4px}
+.tag.green{background:var(--green-l);color:var(--green-d)}
+.tag.red{background:var(--red-l);color:var(--red-d)}
+.tag.seller{background:#e4edff;color:#1d4fb8}
+.tag.buyer{background:#eee8ff;color:#5b34d4}
+
+/* ---------- timeline ---------- */
+.timeline{list-style:none;margin:16px 0 6px;padding:0;display:grid;grid-template-columns:1fr}
+.stage{position:relative;display:grid;grid-template-columns:46px 1fr;column-gap:12px;align-items:center;padding:7px 0;--c:var(--seller);--glow:rgba(47,111,237,.22)}
+.stage.buyer{--c:var(--buyer);--glow:rgba(124,77,255,.22)}
+.stage .node{grid-row:1/3;position:relative;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:#fff;border:3px solid var(--c);z-index:1}
+.stage.mine .node{background:var(--c);box-shadow:0 0 0 5px var(--glow)}
+.stage.mine .node span{filter:drop-shadow(0 0 1px rgba(255,255,255,.9))}
+.stage .lab{font-weight:700;font-size:.92rem;color:var(--navy);line-height:1.2}
+.stage .who{font-size:.8rem;color:var(--c);font-weight:700}
+.stage:not(:last-child):after{content:"";position:absolute;left:21px;top:46px;bottom:-6px;width:4px;background:var(--c);z-index:0}
+.stage.pass .node:before{content:"⚑";position:absolute;top:-9px;right:-9px;font-size:16px;background:#fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;border:2px solid var(--navy);color:var(--red)}
+@media(min-width:760px){
+  .timeline{grid-template-columns:repeat(7,1fr);gap:0}
+  .stage{grid-template-columns:1fr;justify-items:center;text-align:center;row-gap:6px;padding:4px 2px}
+  .stage .node{grid-row:auto}
+  .stage:not(:last-child):after{left:50%;top:27px;bottom:auto;width:100%;height:4px}
+}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--muted);margin:2px 0 6px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:5px}
+.dot.seller{background:var(--seller)} .dot.buyer{background:var(--buyer)}
+
+/* ---------- limit meter ---------- */
+.meterbar{height:14px;background:var(--line);border-radius:99px;overflow:hidden;margin:6px 0}
+.meterbar i{display:block;height:100%;background:var(--amber);border-radius:99px;min-width:3px}
+
+/* ---------- cover step ---------- */
+.covers{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+.cov{padding:14px}
+.cov .rate{font-size:.82rem;color:var(--muted)}
+.cov h4{font-size:1.1rem}
+.cov p{font-size:.9rem;margin:2px 0}
+.toggles{display:grid;gap:8px;margin-top:10px}
+.tog{display:flex;align-items:flex-start;gap:12px;border:2px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;cursor:pointer;text-align:left;width:100%;min-height:56px}
+.tog .box{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid #b8b1a3;display:grid;place-items:center;font-weight:900;color:#fff;margin-top:2px}
+.tog.on{border-color:var(--green);background:var(--green-l)}
+.tog.on .box{background:var(--green);border-color:var(--green)}
+.tog:disabled{opacity:.45;cursor:not-allowed}
+.tog b{display:block;color:var(--navy)}
+.tog small{display:block}
+
+table{border-collapse:collapse;width:100%}
+.calc td{padding:6px 4px;border-bottom:1px dashed var(--line);font-size:.95rem}
+.calc td:last-child{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+.calc tr.sum td{font-weight:800;border-bottom:2px solid var(--navy);color:var(--navy)}
+.calc tr.final td{font-weight:900;font-size:1.05rem;background:var(--green-l);border-bottom:0}
+.calc td.op{width:26px;color:var(--muted)}
+.box2{border:2px solid var(--line);border-radius:14px;padding:12px 14px;background:#fff;margin-top:10px}
+details{border:1px solid var(--line);border-radius:14px;background:#fff;padding:0;margin:12px 0}
+details>summary{cursor:pointer;padding:12px 14px;font-weight:800;color:var(--navy);list-style:none;min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+details>summary::-webkit-details-marker{display:none}
+details>summary:after{content:"＋";font-weight:900;color:var(--red)}
+details[open]>summary:after{content:"－"}
+details>.in{padding:0 14px 14px}
+.perils{font-size:.88rem}
+.perils th,.perils td{padding:6px 6px;border-bottom:1px solid var(--line);text-align:center}
+.perils th:first-child,.perils td:first-child{text-align:left}
+.perils thead th{background:#f5f1ea;color:var(--navy)}
+.perils .gh td{background:#f9f6f0;font-weight:800;color:var(--navy);text-align:left}
+.perils .yes{color:var(--green-d);font-weight:900}
+.perils .no{color:#b0382d;font-weight:900}
+.perils .hl{background:#fff6d6}
+.scroll{overflow-x:auto}
+
+/* ---------- voyage ---------- */
+.recap{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px}
+.recap .tag{font-size:.82rem;padding:4px 10px}
+.dial{display:flex;flex-wrap:wrap;gap:8px}
+.dealt{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:16px 0}
+.haz{border:2px solid var(--line);border-radius:16px;padding:12px 14px;background:#fff;display:flex;flex-direction:column;gap:6px;transition:border-color .3s,background .3s,transform .3s}
+.haz header{display:flex;align-items:center;gap:10px}
+.haz h4{font-size:1rem;flex:1}
+.hz-ico{font-size:1.7rem}
+.chance{text-align:right;font-weight:900;font-size:1.15rem;color:var(--navy);line-height:1}
+.chance small{display:block;font-size:.68rem;font-weight:600}
+.story{font-size:.88rem;color:var(--muted);margin:0}
+.covline{font-size:.84rem;margin:0;font-weight:700}
+.covline.yes{color:var(--green-d)} .covline.no{color:#9a3a30}
+.covline small{display:block;font-weight:500}
+.result{margin-top:auto;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-top:1px dashed var(--line);padding-top:8px;transition:opacity .3s}
+.haz.pending .result{opacity:.0}
+.haz.pending{background:#faf8f4}
+.dice b{font-variant-numeric:tabular-nums}
+.dice small{display:block;font-size:.76rem;color:var(--muted);font-weight:500}
+.verdict{font-weight:800;font-size:.9rem;text-align:right}
+.verdict small{font-weight:600}
+.haz.rev.hit{border-color:var(--red);background:var(--red-l)}
+.haz.rev.hit .verdict{color:var(--red-d)}
+.haz.rev.safe .verdict{color:var(--green-d)}
+.haz.flip{transform:scale(1.03)}
+.forced{font-size:.72rem;font-weight:800;background:var(--navy);color:#fff;border-radius:99px;padding:2px 8px}
+
+/* ---------- who pays ---------- */
+.stack{display:flex;height:46px;border-radius:12px;overflow:hidden;border:2px solid var(--navy);background:#eee;margin:8px 0}
+.stack>div{min-width:5px;transition:flex-grow .5s}
+.stack .s-car{background:var(--amber)} .stack .s-ins{background:var(--green)} .stack .s-you{background:var(--red)}
+.keys{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:8px 0 4px}
+.key{border-radius:12px;padding:10px 12px;border:2px solid var(--line);background:#fff}
+.key b{display:block;font-size:1.25rem;font-variant-numeric:tabular-nums}
+.key.car{border-color:var(--amber)} .key.ins{border-color:var(--green)} .key.you{border-color:var(--red)}
+.key.car b{color:var(--amber-d)} .key.ins b{color:var(--green-d)} .key.you b{color:var(--red-d)}
+.evt{border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;background:#fff}
+.evt.mine{border-color:var(--red)}
+.evt h4{font-size:1.02rem;margin-bottom:4px}
+.evt ul{margin:6px 0 0;padding-left:18px}
+.evt li{margin:3px 0;font-size:.93rem}
+.evt.other{background:#f6f4ef;border-style:dashed}
+.sumrow{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.95rem;margin:8px 0}
+.wi{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}
+.wi li{display:grid;grid-template-columns:1fr auto;column-gap:12px;row-gap:2px;align-items:center;border:2px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.wi li.cur{background:#fff6d6;border-color:#f0cf86}
+.wi li.best{border-color:var(--green)}
+.wi .wl{font-weight:700;color:var(--navy);display:flex;flex-direction:column}
+.wi .wl b{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--amber-d)}
+.wi .wn{grid-column:1;font-size:.84rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 14px}
+.wi .wn b{color:var(--ink)}
+.wi .wt{grid-row:1/3;grid-column:2;text-align:right;font-weight:900;font-size:1.1rem;font-variant-numeric:tabular-nums;color:var(--navy);line-height:1.15}
+.wi .wt small{display:block;font-size:.72rem;font-weight:700;color:var(--muted)}
+.wi li.best .wt,.wi li.best .wt small{color:var(--green-d)}
+
+/* ---------- sim ---------- */
+.simgrid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin:12px 0}
+.simcard{border:2px solid var(--line);border-radius:16px;padding:14px;background:#fff}
+.simcard.none{border-color:var(--red)} .simcard.cov{border-color:var(--green)}
+.simcard h4{font-size:1rem;margin-bottom:6px}
+.simcard .big{font-size:1.6rem;font-weight:900;font-variant-numeric:tabular-nums;color:var(--navy);line-height:1.1}
+.simcard .lbl{font-size:.8rem;color:var(--muted);margin-bottom:8px}
+.bar2{height:12px;border-radius:99px;background:var(--line);overflow:hidden;margin:2px 0 10px}
+.bar2 i{display:block;height:100%;border-radius:99px;min-width:2px}
+.none .bar2 i{background:var(--red)} .cov .bar2 i{background:var(--green)}
+.take{font-weight:800;color:var(--navy);font-size:1.05rem}
+
+/* ---------- claim ---------- */
+.opts{display:grid;gap:8px}
+.opt{border:2px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;cursor:pointer;text-align:left;min-height:52px;display:flex;gap:10px;align-items:center}
+.opt.sel{border-color:var(--red);background:var(--red-l)}
+.opt.ok{border-color:var(--green);background:var(--green-l)}
+.opt.bad{border-color:var(--red);background:var(--red-l)}
+.opt .mk{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid #b8b1a3;display:grid;place-items:center;font-weight:900;color:#fff}
+.opt.sel .mk{background:var(--red);border-color:var(--red)}
+.opts.lock .opt{cursor:default}
+
+/* ---------- static sections ---------- */
+section.block{margin:26px 0}
+section.block>h2{font-size:1.5rem;margin-bottom:10px}
+.case{border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:var(--sh);padding:18px 18px 14px}
+.case h3{font-size:1.2rem;margin-bottom:6px}
+.case ul{padding-left:20px;margin:6px 0 10px}
+.case li{margin:5px 0}
+.cite{color:var(--muted);font-size:.82rem}
+.nums td,.nums th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:.88rem;vertical-align:top}
+.nums thead th{background:#f5f1ea;color:var(--navy)}
+.nums .ill{color:#8a5a00;font-weight:700}
+footer{background:var(--navy);color:#cfd9e8;margin-top:34px;padding:26px 0 34px;font-size:.88rem}
+footer h2{color:#fff;font-size:1.1rem;margin-bottom:8px}
+footer a{color:#fff;word-break:break-word}
+footer ol{padding-left:20px;margin:6px 0 14px}
+footer li{margin:6px 0;padding-left:2px}
+footer p{color:#cfd9e8}
+.refs li{text-indent:0}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#app">Skip to the game</a>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Insure it <em>or</em> risk it?</h1>
+    <p class="sub">Pick a cargo, pick an Incoterm, pick your cover. Then let the dice decide who pays when the voyage goes wrong.</p>
+    <div class="chips" aria-label="Topics">
+      <span class="chip">Marine cargo insurance</span><span class="chip">Incoterms 2020</span>
+      <span class="chip">General average</span><span class="chip">Carrier liability limits</span>
+    </div>
+    <p class="illus" role="note">🎲 All odds are illustrative, not actuarial</p>
+    <p class="by">A student project by Mark Fourmanovskis · Seneca Polytechnic, Supply Chain Management · SCM930 Transportation ·
+      <a href="https://www.linkedin.com/in/mark-fourmanovskis/" target="_blank" rel="noopener">LinkedIn</a></p>
+  </div>
+</header>
+
+<nav class="stepper" id="stepper" aria-label="Game steps"></nav>
+
+<main id="app" class="wrap" tabindex="-1"></main>
+
+<div class="wrap">
+  <section class="block" id="cases" aria-labelledby="cases-h">
+    <h2 id="cases-h">Case files</h2>
+    <div class="grid two">
+      <article class="case">
+        <h3>🪙 The C$20 million gold heist (Toronto Pearson, 2023)</h3>
+        <ul>
+          <li>On April 17, 2023, a shipment of 6,600 gold bars (worth about $20 million) and about $2.5 million in foreign currency arrived at Toronto Pearson from Zurich. Police say a suspect showed a fraudulent air waybill and drove off with the shipment. <span class="cite">(CP24, 2025)</span></li>
+          <li>Brink’s sued Air Canada. In January 2025 the Federal Court limited the airline’s liability to 9,988 SDR, just over C$18,000, because Brink’s had not made a special declaration of interest in delivery. In practice that means declaring a higher value in advance and paying a surcharge. <span class="cite">(CP24, 2025; de Vries, 2026)</span></li>
+          <li>The 9,988 SDR is the old air limit of 22 SDR per kg applied to about 454 kg of gold and notes. The limit rose to 26 SDR per kg on December 28, 2024. <span class="cite">(de Vries, 2026; ICAO, 2024)</span></li>
+          <li>Air Canada confirmed on August 28, 2026 that it had settled with Brink’s. Neither side has said what was paid. <span class="cite">(de Vries, 2026)</span></li>
+        </ul>
+        <p><b>Lesson:</b> “the carrier pays while it holds my cargo” is a common misconception, because most carriers’ liability is limited <span class="cite">(Seneca Polytechnic, 2026)</span>. The legal limit is not insurance. A declared value (for a fee) or a cargo policy is what protects the value of the goods.</p>
+        <div class="btnrow"><button class="btn primary small" data-act="presetHeist">▶ Replay it in the game</button></div>
+        <p class="cite">The replay uses today’s limit of 26 SDR per kg, so the carrier’s share comes out slightly higher than the court’s. Its Incoterm (FCA, you as the buyer) is my own assumption.</p>
+      </article>
+      <article class="case">
+        <h3>🧭 The forwarder who never insured</h3>
+        <ul>
+          <li>A freight forwarder reported never buying cargo insurance in five years, with mostly FOB or EXW shipments from China to other Asian countries.</li>
+          <li><b>Why that can make sense:</b> under EXW and FOB the buyer carries the risk once the goods are collected or loaded, so insuring is the buyer’s call. Buyers often hold their own policy. Routes are short. Most shipments arrive fine.</li>
+          <li><b>The gap:</b> “most arrive fine” is not a guarantee. On an ocean leg, general average can bill an owner whose goods are untouched, and a deposit is due before release. If nobody has cover, a total loss lands on whoever held the risk.</li>
+          <li id="fwdStat"></li>
+        </ul>
+        <div class="btnrow"><button class="btn dark small" data-act="presetFwd">▶ Try a FOB, no-cover set-up (1,000 voyages)</button></div>
+        <p class="cite">Not a criticism. It is a risk decision, made visible. The cargo in the demo is my own example, and the odds are illustrative.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="block" id="numbers" aria-labelledby="numbers-h">
+    <h2 id="numbers-h">Numbers used in this game</h2>
+    <p class="small">Check them yourself. “Illustrative” means I made it up for teaching.</p>
+    <div class="scroll"><table class="nums" id="numsTable"></table></div>
+  </section>
+
+  <section class="block" id="glossary" aria-labelledby="gloss-h">
+    <h2 id="gloss-h">Class notes in plain words</h2>
+    <div id="glossBody"></div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>CP24. (2025, January 25). <i>Air Canada ordered to pay Brink’s over $18K for $20M gold stolen at Toronto Pearson</i>. <a href="https://www.cp24.com/local/peel/2025/01/25/air-canada-ordered-to-pay-brinks-over-18k-for-20m-gold-stolen-at-toronto-pearson/" target="_blank" rel="noopener">https://www.cp24.com/local/peel/2025/01/25/air-canada-ordered-to-pay-brinks-over-18k-for-20m-gold-stolen-at-toronto-pearson/</a></li>
+      <li>de Vries, T. (2026, August 30). <i>Air Canada settles the lawsuit over its $20 million Pearson gold heist</i>. AeroCorner. <a href="https://aerocorner.com/news/air-canada-brinks-gold-heist-settlement/" target="_blank" rel="noopener">https://aerocorner.com/news/air-canada-brinks-gold-heist-settlement/</a></li>
+      <li>International Chamber of Commerce. (2019). <i>Incoterms® 2020: ICC rules for the use of domestic and international trade terms</i>. ICC.</li>
+      <li>International Civil Aviation Organization. (2024, October 18). <i>International air travel liability limits set to increase, enhancing customer compensation</i> [News release]. <a href="https://icao.int/Newsroom/Pages/International-air-travel-liability-limits-set-to-increase,-enhancing-customer-compensation--.aspx" target="_blank" rel="noopener">https://icao.int/Newsroom/Pages/International-air-travel-liability-limits-set-to-increase,-enhancing-customer-compensation--.aspx</a></li>
+      <li>International Monetary Fund. (2026, November 16). <i>Currency units per SDR for November 2026</i> [Data set]. Retrieved November 17, 2026, from <a href="https://www.imf.org/EXTERNAL/NP/FIN/DATA/rms_mth.aspx?reportType=CVSDR" target="_blank" rel="noopener">https://www.imf.org/EXTERNAL/NP/FIN/DATA/rms_mth.aspx?reportType=CVSDR</a></li>
+      <li>Seneca Polytechnic. (2026). <i>SCM930 Week 10–11: Cargo insurance and claims</i> [Lecture slides; originals by L. Thomson, S. Varughese &amp; M. Spies; source CIFFA].</li>
+    </ol>
+    <p><b>Honest fine print.</b> Every hazard chance, the size of each loss, the ICC B and C rates, the cargo risk factors, the refrigerated add-on rate and the declared-value fee are illustrative teaching numbers, not actuarial data or real loss statistics. Carrier liability and policy wording are simplified: real outcomes depend on the contract, the facts and the exact policy. The perils table follows the course slide; real Institute Cargo Clauses wording is more detailed. This is an educational project, not insurance or legal advice.</p>
+    <p id="selfcheck" class="small"></p>
+  </div>
+</footer>
+
+<script>
+/* ------------------------------------------------------------------
+   Insure It or Risk It? - game engine (pure logic, no DOM)
+   All hazard odds, severities, the ICC B/C rates, cargo risk factors,
+   the reefer add-on rate and the declared-value fee are ILLUSTRATIVE
+   teaching numbers, not actuarial data.
+------------------------------------------------------------------- */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.Engine = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  /* ---------------- constants ---------------- */
+  // IMF "Currency units per SDR", Canadian dollar, 16 Nov 2026.
+  const SDR_CAD = 1.92386;
+  const SDR_DATE = 'November 16, 2026';
+
+  // Seneca SCM930 slides: all-risk $0.27 per $100, war & strikes $0.03 per $100.
+  // ICC B and C rates are NOT in the slides: illustrative.
+  const BASE_RATE = { A: 0.27, B: 0.20, C: 0.14 };
+  const WS_RATE = 0.03;
+  const REEFER_RATE = 0.10;          // illustrative add-on
+  const DECLARE_PCT = 0.5;           // illustrative: % of goods value
+  const VALUATION = 0.10;            // class: +10% on CIF/CIP value
+
+  const COVER_ORDER = ['none', 'C', 'B', 'A'];
+
+  const MODES = {
+    ocean: { label: 'Ocean', icon: '🚢', limitText: '2 SDR per kg (or US$500 per shipping unit)' },
+    air:   { label: 'Air',   icon: '✈️', limitText: '26 SDR per kg (since 28 Dec 2024)' },
+    road:  { label: 'Road',  icon: '🚚', limitText: 'CAD $4.41 per kg (CAD $2 per lb)' }
+  };
+
+  function limitPerKgCAD(mode) {
+    if (mode === 'road') return 4.41;
+    if (mode === 'ocean') return 2 * SDR_CAD;
+    return 26 * SDR_CAD;
+  }
+
+  /* ---------------- journey stages ---------------- */
+  const STAGE_LABELS = {
+    ocean: ['Seller’s dock', 'Truck to port', 'Port and loading on ship', 'At sea', 'Unloading at destination port', 'Truck to buyer', 'Buyer’s dock'],
+    air:   ['Seller’s dock', 'Truck to airport', 'Airport and loading on plane', 'In the air', 'Unloading at destination airport', 'Truck to buyer', 'Buyer’s dock'],
+    road:  ['Seller’s dock', 'Pickup run', 'Origin depot', 'Long-haul highway', 'Destination depot', 'Delivery run', 'Buyer’s dock']
+  };
+  const STAGE_ICONS = {
+    ocean: ['🏭', '🚚', '⚓', '🚢', '🏗️', '🚚', '🏬'],
+    air:   ['🏭', '🚚', '🛫', '✈️', '🛬', '🚚', '🏬'],
+    road:  ['🏭', '🚚', '🏢', '🛣️', '🏢', '🚚', '🏬']
+  };
+
+  // Who holds a carrier's custody at a stage (null = nobody: it is a dock).
+  function carrierModeAt(stage, mainMode) {
+    if (stage === 0 || stage === 6) return null;
+    if (mainMode === 'road') return 'road';
+    if (stage === 1 || stage === 5) return 'road';
+    return mainMode;
+  }
+
+  /* ---------------- Incoterms 2020 ---------------- */
+  // buyerFrom = first stage the BUYER carries the risk (game simplification).
+  const TERM_LIST = [
+    { code: 'EXW', name: 'Ex Works', group: 'any', buyerFrom: 0, insure: null, freight: 'buyer',
+      pass: 'when the goods are made available at the seller’s door (before loading)',
+      blurb: 'The seller just has the goods ready at the door. The buyer collects them, loads them and carries all the risk from there.' },
+    { code: 'FCA', name: 'Free Carrier', group: 'any', buyerFrom: 1, insure: null, freight: 'buyer',
+      pass: 'when the goods are loaded onto the buyer’s carrier at the seller’s place',
+      blurb: 'The seller loads the goods onto the buyer’s carrier. Once loaded, the risk is the buyer’s.' },
+    { code: 'CPT', name: 'Carriage Paid To', group: 'any', buyerFrom: 1, insure: null, freight: 'seller',
+      pass: 'when the goods are handed to the first carrier',
+      blurb: 'The seller pays the freight to the destination, but the risk still passes to the buyer at the first hand-over.' },
+    { code: 'CIP', name: 'Carriage and Insurance Paid To', group: 'any', buyerFrom: 1, insure: 'A', freight: 'seller',
+      pass: 'when the goods are handed to the first carrier',
+      blurb: 'Like CPT, but the seller must also buy ICC A cover for 110% of the contract price.' },
+    { code: 'DAP', name: 'Delivered at Place', group: 'any', buyerFrom: 6, insure: null, freight: 'seller',
+      pass: 'when the goods arrive at the buyer’s dock, ready to unload',
+      blurb: 'The seller delivers to the buyer’s dock, ready to unload, and carries the risk all the way there. (Game: named place = buyer’s dock.)' },
+    { code: 'DPU', name: 'Delivered at Place Unloaded', group: 'any', buyerFrom: 5, insure: null, freight: 'seller',
+      pass: 'when the goods have been unloaded at the destination terminal',
+      blurb: 'The seller delivers and also unloads at the named place. (Game: named place = destination terminal.)' },
+    { code: 'DDP', name: 'Delivered Duty Paid', group: 'any', buyerFrom: 6, insure: null, freight: 'seller',
+      pass: 'when the goods arrive at the buyer’s dock, ready to unload (import duties already paid)',
+      blurb: 'Like DAP, and the seller also pays import clearance and duties. Maximum seller responsibility.' },
+    { code: 'FAS', name: 'Free Alongside Ship', group: 'sea', buyerFrom: 2, insure: null, freight: 'buyer',
+      pass: 'when the goods are placed alongside the ship at the port',
+      blurb: 'The seller puts the goods next to the ship. Loading onto the ship is already the buyer’s risk.' },
+    { code: 'FOB', name: 'Free On Board', group: 'sea', buyerFrom: 3, insure: null, freight: 'buyer',
+      pass: 'when the goods are on board the ship',
+      blurb: 'Risk passes once the goods are on board. The seller carries the loading risk, the buyer carries the sea voyage.' },
+    { code: 'CFR', name: 'Cost and Freight', group: 'sea', buyerFrom: 3, insure: null, freight: 'seller',
+      pass: 'when the goods are on board the ship',
+      blurb: 'The seller pays the sea freight, but the risk still passes to the buyer once the goods are on board.' },
+    { code: 'CIF', name: 'Cost, Insurance and Freight', group: 'sea', buyerFrom: 3, insure: 'C', freight: 'seller',
+      pass: 'when the goods are on board the ship',
+      blurb: 'Like CFR, but the seller must also buy at least ICC C cover for 110% of the contract price.' }
+  ];
+  const TERMS = {};
+  TERM_LIST.forEach(t => { TERMS[t.code] = t; });
+
+  function termAllowed(term, mode) { return term.group === 'any' || mode === 'ocean'; }
+  function defaultTermFor(mode) { return mode === 'ocean' ? 'FOB' : 'FCA'; }
+  function coverRank(c) { return COVER_ORDER.indexOf(c); }
+  function coverFloor(term) { return term && term.insure ? term.insure : 'none'; }
+  function stagesAtRisk(term, role) {
+    const out = [];
+    for (let i = 0; i < 7; i++) if ((i >= term.buyerFrom ? 'buyer' : 'seller') === role) out.push(i);
+    return out;
+  }
+
+  /* ---------------- cargoes ---------------- */
+  // value in CAD, weight in kg. fragile / theft / wet are hazard scalers.
+  // loading = illustrative underwriter factor on the A/B/C rate.
+  const CARGOES = [
+    { id: 'icewine', name: 'Niagara icewine', icon: '🍷', value: 300000, weight: 6000,
+      routes: { ocean: 'Niagara, ON → Daegu, South Korea', air: 'Niagara, ON → Daegu, South Korea' },
+      modes: ['ocean', 'air'], defMode: 'ocean', freight: { ocean: 5500, air: 27000 },
+      fragile: 0.9, theft: 0.4, wet: 0.5, liquid: true, perishable: false, loading: 1.2,
+      fragileDots: 5, theftDots: 2,
+      blurb: 'About 6,500 half-bottles of glass. Ships fine, hates being dropped.' },
+    { id: 'laptops', name: 'Laptops', icon: '💻', value: 1080000, weight: 3000,
+      routes: { air: 'Shenzhen, China → Toronto, ON', ocean: 'Shenzhen, China → Toronto, ON' },
+      modes: ['air', 'ocean'], defMode: 'air', freight: { air: 12600, ocean: 4800 },
+      fragile: 0.6, theft: 0.8, wet: 1.0, liquid: false, perishable: false, loading: 1.5,
+      fragileDots: 3, theftDots: 4,
+      blurb: '1,200 laptops. Small, valuable and easy to resell: a thief’s favourite.' },
+    { id: 'seafood', name: 'Frozen seafood', icon: '🦞', value: 180000, weight: 12000,
+      routes: { ocean: 'Halifax, NS → Tokyo, Japan', air: 'Halifax, NS → Tokyo, Japan' },
+      modes: ['ocean', 'air'], defMode: 'ocean', freight: { ocean: 9000, air: 66000 },
+      fragile: 0.2, theft: 0.3, wet: 0.3, liquid: false, perishable: true, loading: 1.0,
+      fragileDots: 1, theftDots: 2,
+      blurb: 'One reefer container. Needs a working fridge the whole way.' },
+    { id: 'steel', name: 'Steel coils', icon: '⚙️', value: 30000, weight: 24000,
+      routes: { road: 'Hamilton, ON → Chicago, IL', ocean: 'Hamilton, ON → Rotterdam, Netherlands' },
+      modes: ['road', 'ocean'], defMode: 'road', freight: { road: 2400, ocean: 3200 },
+      fragile: 0.0, theft: 0.1, wet: 1.2, liquid: false, perishable: false, loading: 0.8,
+      fragileDots: 0, theftDots: 1,
+      blurb: 'Very heavy, low value per kg. Rust is the enemy, not thieves.' },
+    { id: 'gold', name: 'Gold bars', icon: '🪙', value: 20000000, weight: 400,
+      routes: { air: 'Zurich → Toronto Pearson' },
+      modes: ['air'], defMode: 'air', freight: { air: 20000 },
+      fragile: 0.0, theft: 1.5, wet: 0.2, liquid: false, perishable: false, loading: 2.0,
+      fragileDots: 0, theftDots: 5,
+      blurb: 'Sized like the 2023 Pearson heist: about 400 kg, about C$20 million.' }
+  ];
+  const CARGO_BY_ID = {};
+  CARGOES.forEach(c => { CARGO_BY_ID[c.id] = c; });
+
+  /* ---------------- ICC perils table (course slide) ---------------- */
+  const PERILS = [
+    { group: 'Covered by ICC A, B and C', cover: 'ABC', rows: [
+      'Fire and explosion', 'Ship sinking, stranding or collision', 'Overturning of a land vehicle', 'Plane crash',
+      'General average (sacrifice and contribution)', 'Jettison (cargo thrown overboard to save the ship)', 'Discharge of cargo at a port of distress'] },
+    { group: 'ICC A and B only', cover: 'AB', rows: [
+      'Washing overboard', 'Bad weather damage', 'Loss when loading or unloading', 'Breakage', 'Leakage',
+      'Water entering the ship, container or storage'] },
+    { group: 'ICC A only', cover: 'A', rows: ['Theft', 'Damage caused by other cargo'] },
+    { group: 'Never covered by A, B or C', cover: 'none', rows: [
+      'Strikes and war (separate add-on)', 'Ordinary loss or wear', 'Condition of the goods (inherent vice)',
+      'Bad or insufficient packing', 'Delay'] }
+  ];
+
+  /* ---------------- hazards ---------------- */
+  // p = chance per voyage in percent (illustrative). sev = share of cargo value lost.
+  // cov: 'ABC' | 'AB' | 'A' | 'none' | 'ws' (war & strikes add-on) | 'reefer' (refrigerated add-on)
+  // carrier: is the carrier legally liable (up to its limit) when it holds the cargo?
+  const EVENTS = [
+    { id: 'fire', name: 'Fire', icon: '🔥', modes: ['ocean', 'air', 'road'],
+      stages: { ocean: [2, 3, 4], air: [2, 3, 4], road: [1, 2, 3, 4, 5] },
+      p: 0.05, sev: [0.3, 1.0], cov: 'ABC', carrier: { ocean: false, air: true, road: true },
+      story: 'A fire breaks out in the terminal or on the way.',
+      carrierWhy: 'Ocean carriers have a legal defence for fire unless they were at fault.' },
+    { id: 'sinking', name: 'Ship runs aground or sinks', icon: '⛴️', modes: ['ocean'],
+      stages: { all: [3] }, p: 0.02, sev: [1, 1], cov: 'ABC', carrier: false,
+      story: 'The ship runs aground or sinks with your cargo on board.',
+      carrierWhy: 'Perils of the sea are a standard carrier defence, so cargo owners usually rely on their own insurer.' },
+    { id: 'overturn', name: 'Truck overturns', icon: '🚛', modes: ['ocean', 'air', 'road'],
+      stages: { ocean: [1, 5], air: [1, 5], road: [1, 3, 5] },
+      p: 0.10, sev: [0.2, 1.0], cov: 'ABC', carrier: true,
+      story: 'A truck on your route overturns.',
+      carrierWhy: '' },
+    { id: 'crash', name: 'Plane crash', icon: '🛩️', modes: ['air'],
+      stages: { all: [3] }, p: 0.01, sev: [1, 1], cov: 'ABC', carrier: true,
+      story: 'The aircraft crashes.', carrierWhy: '' },
+    { id: 'ga', name: 'General average declared', icon: '⚖️', modes: ['ocean'], kind: 'ga',
+      stages: { all: [3] }, p: 0.08, sev: [0.04, 0.15], cov: 'ABC', carrier: false,
+      story: 'The ship is in danger. The captain sacrifices some cargo and spends emergency money to save the voyage. Every cargo owner shares the bill, even if their own goods are fine.',
+      carrierWhy: '' },
+    { id: 'overboard', name: 'Washed overboard', icon: '🌊', modes: ['ocean'],
+      stages: { all: [3] }, p: 0.03, sev: [1, 1], cov: 'AB', carrier: false,
+      story: 'Heavy seas wash your container overboard.',
+      carrierWhy: 'Storms count as perils of the sea, a standard carrier defence.' },
+    { id: 'weather', name: 'Heavy weather damage', icon: '⛈️', modes: ['ocean'],
+      stages: { all: [3] }, p: 0.20, sev: [0.05, 0.30], cov: 'AB', carrier: false,
+      story: 'A storm batters the cargo at sea.',
+      carrierWhy: 'Storms count as perils of the sea, a standard carrier defence.' },
+    { id: 'drop', name: 'Dropped while loading or unloading', icon: '📦', modes: ['ocean', 'air', 'road'],
+      stages: { all: [0, 2, 4, 6] }, p: 0.36, sev: [0.1, 0.5], cov: 'AB', carrier: true,
+      story: 'Someone drops part of the load during loading or unloading.', carrierWhy: '' },
+    { id: 'breakage', name: 'Breakage from rough handling', icon: '💥', modes: ['ocean', 'air', 'road'],
+      stages: { all: [1, 2, 4, 5] }, p: 0.46, scale: c => c.fragile, sev: [0.05, 0.25], cov: 'AB', carrier: true,
+      story: 'Rough handling breaks part of the shipment.', carrierWhy: '' },
+    { id: 'leakage', name: 'Leakage', icon: '💧', modes: ['ocean', 'air', 'road'], needs: c => c.liquid,
+      stages: { all: [2, 3, 4] }, p: 0.28, sev: [0.05, 0.20], cov: 'AB', carrier: false,
+      story: 'A seal fails and liquid leaks out.',
+      carrierWhy: 'Leaks usually trace back to packing or the container, so the carrier can say it was not at fault.' },
+    { id: 'water', name: 'Water gets in', icon: '🌧️', modes: ['ocean', 'air', 'road'],
+      stages: { ocean: [2, 3, 4], air: [2, 4], road: [1, 3, 5] }, p: 0.18, scale: c => c.wet, sev: [0.05, 0.40], cov: 'AB', carrier: false,
+      story: 'Rain or seawater gets into the container.',
+      carrierWhy: 'Weather damage is hard to pin on the carrier.' },
+    { id: 'theft', name: 'Cargo stolen', icon: '🦹', modes: ['ocean', 'air', 'road'],
+      stages: { ocean: [1, 2, 4, 5], air: [1, 2, 4, 5], road: [1, 2, 3, 4, 5] },
+      p: 0.17, scale: c => c.theft, sev: [0.35, 1.0], sevFn: c => (c.theft >= 1.5 ? [1, 1] : [0.35, 1.0]),
+      cov: 'A', carrier: true,
+      story: 'Thieves take the cargo.', carrierWhy: '' },
+    { id: 'othercargo', name: 'Other cargo damages yours', icon: '🧪', modes: ['ocean', 'road'],
+      stages: { ocean: [3, 4], road: [3] }, p: 0.06, sev: [0.1, 0.5], cov: 'A', carrier: true,
+      story: 'Another shipper’s cargo leaks or breaks loose and damages yours.', carrierWhy: '' },
+    { id: 'strike', name: 'Strike turns into a riot', icon: '🪧', modes: ['ocean', 'air', 'road'],
+      stages: { all: [2, 4] }, p: 0.07, sev: [0.1, 0.4], cov: 'ws', carrier: false,
+      story: 'A strike turns into a riot at the terminal and cargo is damaged or looted.',
+      carrierWhy: 'The carrier did not cause a riot.' },
+    { id: 'badpack', name: 'Bad packing', icon: '📉', modes: ['ocean', 'air', 'road'],
+      stages: { all: [1, 2, 3, 4, 5] }, p: 0.27, sev: [0.1, 0.4], cov: 'none', carrier: false,
+      story: 'The packing was not good enough for the trip. Things shift and crack.',
+      carrierWhy: 'Packing was the shipper’s job, so the carrier is not liable.' },
+    { id: 'delay', name: 'Late arrival', icon: '⏳', modes: ['ocean', 'air', 'road'],
+      stages: { ocean: [2, 3], air: [2, 3], road: [3] }, p: 0.68, scale: c => (c.perishable ? 2 : 1), sev: [0.03, 0.12], cov: 'none', carrier: false,
+      story: 'The cargo arrives late and you miss your market window.',
+      carrierWhy: 'Carriers do not guarantee delivery dates.' },
+    { id: 'reefer', name: 'Fridge breaks down', icon: '🧊', modes: ['ocean', 'air', 'road'], needs: c => c.perishable,
+      stages: { ocean: [2, 3, 4], air: [2, 4], road: [1, 3, 5] }, p: 0.30, sev: [0.3, 1.0], cov: 'reefer', carrier: true,
+      story: 'The refrigeration unit breaks down and the cargo thaws.', carrierWhy: '' },
+    { id: 'condition', name: 'Goods spoil on their own', icon: '🦠', modes: ['ocean', 'air', 'road'], needs: c => c.perishable,
+      stages: { all: [3] }, p: 0.20, sev: [0.1, 0.5], cov: 'none', carrier: false,
+      story: 'The goods were not in good condition when loaded and spoil by themselves.',
+      carrierWhy: 'The goods’ own condition is not the carrier’s fault.' }
+  ];
+  const EVENT_BY_ID = {};
+  EVENTS.forEach(e => { EVENT_BY_ID[e.id] = e; });
+
+  const WHY_COVER = {
+    ABC: 'All three ICC levels (A, B and C) cover this.',
+    AB: 'ICC A and B cover this. ICC C does not.',
+    A: 'Only ICC A covers this.',
+    none: 'No ICC level covers this.',
+    ws: 'Not in A, B or C. It needs the war and strikes add-on.',
+    reefer: 'Not in A, B or C. It needs the refrigerated-goods add-on.'
+  };
+
+  /* ---------------- helpers ---------------- */
+  function round2(x) { return Math.round((x + Number.EPSILON) * 100) / 100; }
+
+  function makeRng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function stagesFor(ev, mode) { return ev.stages[mode] || ev.stages.all; }
+  function scaleFor(ev, cargo) { return ev.scale ? ev.scale(cargo) : 1; }
+  // h = base chance (percent) that the hazard strikes on one voyage.
+  function baseP(ev, cargo) { return ev.p * scaleFor(ev, cargo); }
+  function sevRange(ev, cargo) { return ev.sevFn ? ev.sevFn(cargo) : ev.sev; }
+  function applies(ev, cargo, mode) {
+    if (ev.modes.indexOf(mode) < 0) return false;
+    if (ev.needs && !ev.needs(cargo)) return false;
+    return baseP(ev, cargo) > 0;
+  }
+  function poolFor(cargo, mode) { return EVENTS.filter(ev => applies(ev, cargo, mode)); }
+  // Four cards are dealt from the pool, each with equal chance. The % printed on a card is
+  // boosted by pool/4 so the real long-run chance per voyage stays equal to h whatever the pool size.
+  function poolFactor(pool) { return Math.max(1, pool.length / 4); }
+  function pEff(ev, cargo, odds, pool) {
+    return Math.min(60, baseP(ev, cargo) * poolFactor(pool) * (odds || 1));
+  }
+  function carrierLiable(ev, cm) {
+    const c = ev.carrier;
+    return typeof c === 'object' ? !!c[cm] : !!c;
+  }
+  function isCovered(ev, ctx) {
+    if (!ctx.cover || ctx.cover === 'none') return false;
+    if (ev.cov === 'ws') return !!ctx.warStrikes;
+    if (ev.cov === 'reefer') return !!ctx.reefer;
+    if (ev.cov === 'none') return false;
+    return ev.cov.indexOf(ctx.cover) >= 0;
+  }
+
+  /* ---------------- premium ---------------- */
+  // Class worked example: goods + freight = CFR; + est. premium = CIF; + 10% = insured value.
+  function buildPremium(goods, freight, ratePer100) {
+    const r = ratePer100 / 100;
+    const cfr = round2(goods + freight);
+    const est = round2(cfr * r);
+    const cif = round2(cfr + est);
+    const val = round2(cif * VALUATION);
+    const insured = round2(cif + val);
+    const premium = round2(insured * r);
+    return { goods, freight, cfr, est, cif, val, insured, premium, ratePer100 };
+  }
+
+  function rateParts(ctx) {
+    if (!ctx.cover || ctx.cover === 'none') return { total: 0, base: 0, loading: 1, adj: 0, ws: 0, reefer: 0 };
+    const loading = ctx.cargo ? ctx.cargo.loading : 1;
+    const base = BASE_RATE[ctx.cover];
+    const adj = base * loading;
+    const ws = ctx.warStrikes ? WS_RATE : 0;
+    const reefer = (ctx.reefer && ctx.cargo && ctx.cargo.perishable) ? REEFER_RATE : 0;
+    return { total: adj + ws + reefer, base, loading, adj, ws, reefer };
+  }
+
+  function premiumLines(ctx) {
+    const cargo = ctx.cargo;
+    const rp = rateParts(ctx);
+    if (rp.total === 0) return { rate: rp, build: null, premium: 0 };
+    const freight = cargo.freight[ctx.mode] || 0;
+    const build = buildPremium(cargo.value, freight, rp.total);
+    return { rate: rp, build, premium: build.premium };
+  }
+
+  function declareFee(ctx) {
+    return (ctx.declare && ctx.mode === 'air') ? round2(ctx.cargo.value * DECLARE_PCT / 100) : 0;
+  }
+
+  function classExample() {
+    const b = buildPremium(100000, 3000, 0.30);
+    const ok = b.cfr === 103000 && b.est === 309 && b.cif === 103309 && b.val === 10330.9 &&
+               b.insured === 113639.9 && b.premium === 340.92;
+    return { build: b, ok };
+  }
+
+  /* ---------------- carrier limit meter ---------------- */
+  function carrierLimitInfo(ctx) {
+    const cargo = ctx.cargo;
+    const perKg = limitPerKgCAD(ctx.mode);
+    const max = perKg * cargo.weight;
+    return { perKg, max, shareOfValue: max / cargo.value };
+  }
+
+  /* ---------------- dealing and rolling ---------------- */
+  function pickWeighted(items, wf, rng) {
+    const total = items.reduce((s, x) => s + wf(x), 0);
+    let r = rng() * total, i = 0;
+    for (; i < items.length; i++) { r -= wf(items[i]); if (r <= 0) break; }
+    if (i >= items.length) i = items.length - 1;
+    return i;
+  }
+
+  function dealCards(pool, rng, n) {
+    const items = pool.slice();
+    const out = [];
+    const want = Math.min(n || 4, items.length);
+    while (out.length < want) {
+      const i = Math.min(items.length - 1, Math.floor(rng() * items.length));
+      out.push(items.splice(i, 1)[0]);
+    }
+    return out;
+  }
+
+  function pickBad(ctx, pool, rng) {
+    const mine = stagesAtRisk(ctx.term, ctx.role);
+    let cands = pool.map(ev => ({ ev, st: stagesFor(ev, ctx.mode).filter(s => mine.indexOf(s) >= 0) })).filter(x => x.st.length);
+    if (!cands.length) cands = pool.map(ev => ({ ev, st: stagesFor(ev, ctx.mode) }));
+    const i = pickWeighted(cands, x => Math.pow(baseP(x.ev, ctx.cargo), 0.4), rng);
+    const pick = cands[i];
+    const stage = pick.st[Math.floor(rng() * pick.st.length)];
+    const rg = sevRange(pick.ev, ctx.cargo);
+    const sev = rg[0] + (rg[1] - rg[0]) * rng();
+    return { ev: pick.ev, stage, sev };
+  }
+
+  // opts.bad = stage a bad voyage for the player; opts.force = {id, stage, sev}
+  function rollVoyage(ctx, rng, opts) {
+    opts = opts || {};
+    rng = rng || Math.random;
+    const cargo = ctx.cargo, mode = ctx.mode;
+    const pool = poolFor(cargo, mode);
+    const evs = dealCards(pool, rng, 4);
+    let forced = null;
+    if (opts.force) forced = { ev: EVENT_BY_ID[opts.force.id], stage: opts.force.stage, sev: opts.force.sev };
+    else if (opts.bad) forced = pickBad(ctx, pool, rng);
+    if (forced && evs.findIndex(e => e.id === forced.ev.id) < 0) {
+      evs[Math.floor(rng() * evs.length)] = forced.ev;
+    }
+    const cards = evs.map(ev => {
+      const p = pEff(ev, cargo, ctx.odds || 1, pool);
+      const isForced = !!forced && ev.id === forced.ev.id;
+      const roll = isForced ? null : rng() * 100;
+      const happened = isForced ? true : roll < p;
+      let stage = null, sev = null;
+      if (happened) {
+        const st = stagesFor(ev, mode);
+        stage = (isForced && forced.stage != null) ? forced.stage : st[Math.floor(rng() * st.length)];
+        const rg = sevRange(ev, cargo);
+        sev = (isForced && forced.sev != null) ? forced.sev : rg[0] + (rg[1] - rg[0]) * rng();
+      }
+      return { ev, p, roll, happened, stage, sev, forced: isForced };
+    });
+    return { cards };
+  }
+
+  /* ---------------- who pays? ---------------- */
+  // Events are processed in journey order. The cargo can only be lost once: later events can
+  // only damage what is left (remaining share). General average is a bill, not a loss of goods.
+  function evaluate(ctx, voyage) {
+    const term = ctx.term, cargo = ctx.cargo;
+    const outcomes = [];
+    const totals = { loss: 0, carrier: 0, insurer: 0, you: 0, eventsMine: 0, eventsOther: 0 };
+    const happened = voyage.cards.map((c, i) => ({ c, i })).filter(x => x.c.happened)
+      .sort((a, b) => (a.c.stage - b.c.stage) || (a.i - b.i));
+    let remaining = 1;
+    happened.forEach(x => {
+      const c = x.c;
+      const isGA = c.ev.kind === 'ga';
+      const eff = isGA ? c.sev * remaining : Math.min(c.sev, remaining);
+      const gone = eff <= 1e-12;
+      if (!isGA) remaining -= eff;
+      const bearer = c.stage >= term.buyerFrom ? 'buyer' : 'seller';
+      const mine = bearer === ctx.role;
+      const o = { card: c, ev: c.ev, stage: c.stage, bearer, mine, gone, sevEff: eff, loss: 0, liable: false,
+                  carrierMode: null, carrierMax: 0, carrierPays: 0, declared: false, covered: false,
+                  insurerPays: 0, youPay: 0, isGA };
+      if (mine && !gone) {
+        o.loss = eff * cargo.value;
+        if (!isGA) {
+          const cm = carrierModeAt(c.stage, ctx.mode);
+          o.carrierMode = cm;
+          if (cm && carrierLiable(c.ev, cm)) {
+            o.liable = true;
+            let cap = limitPerKgCAD(cm) * cargo.weight * eff;
+            if (ctx.declare && ctx.mode === 'air' && cm === 'air') { cap = o.loss; o.declared = true; }
+            o.carrierMax = cap;
+            o.carrierPays = Math.min(o.loss, cap);
+          }
+        }
+        o.covered = isCovered(c.ev, ctx);
+        o.insurerPays = o.covered ? o.loss - o.carrierPays : 0;
+        o.youPay = o.loss - o.carrierPays - o.insurerPays;
+        totals.loss += o.loss; totals.carrier += o.carrierPays; totals.insurer += o.insurerPays; totals.you += o.youPay;
+        totals.eventsMine++;
+      } else if (!mine) totals.eventsOther++;
+      outcomes.push(o);
+    });
+    return { outcomes, totals };
+  }
+
+  /* ---------------- 1,000 voyages ---------------- */
+  function comparisonCtx(ctx) {
+    if (ctx.cover !== 'none') return Object.assign({}, ctx, { comparison: false });
+    return Object.assign({}, ctx, { cover: 'A', warStrikes: true, reefer: !!ctx.cargo.perishable, comparison: true });
+  }
+
+  function simulate(ctx, n, rng) {
+    rng = rng || Math.random;
+    const none = Object.assign({}, ctx, { cover: 'none', warStrikes: false, reefer: false });
+    const cov = comparisonCtx(ctx);
+    const premium = premiumLines(cov).premium;
+    const fee = declareFee(ctx);
+    let sumN = 0, sumC = 0, worstN = 0, worstC = 0, evVoy = 0, lossN = 0, lossC = 0, streak = 0, best = 0;
+    for (let i = 0; i < n; i++) {
+      const v = rollVoyage(ctx, rng);
+      const a = evaluate(none, v), b = evaluate(cov, v);
+      const costN = a.totals.you + fee;
+      const costC = premium + b.totals.you + fee;
+      sumN += costN; sumC += costC;
+      if (costN > worstN) worstN = costN;
+      if (costC > worstC) worstC = costC;
+      if (a.totals.eventsMine > 0) { evVoy++; streak = 0; } else { streak++; if (streak > best) best = streak; }
+      if (a.totals.you > 0) lossN++;
+      if (b.totals.you > 0) lossC++;
+    }
+    return {
+      n, premium, fee, cov,
+      avgNone: sumN / n, avgCover: sumC / n, worstNone: worstN, worstCover: worstC,
+      eventFreq: evVoy / n, lossNone: lossN, lossCover: lossC, longestClean: best,
+      exposure: stagesAtRisk(ctx.term, ctx.role).length
+    };
+  }
+
+  /* ---------------- claim race ---------------- */
+  const NOTICE = {
+    ocean: 'At delivery, or within 3 days of delivery if the damage is not visible',
+    air: 'Within 14 days of receiving the goods',
+    road: 'Within 60 days of delivery'
+  };
+  const CLAIM_DOCS = [
+    { id: 'cover', text: 'Cover letter: dated, signed, with the dollar amount claimed', must: true },
+    { id: 'transport', text: 'Transport document (bill of lading, air waybill or pro-bill)', must: true },
+    { id: 'invoice', text: 'Commercial invoice and packing list', must: true },
+    { id: 'receipt', text: 'Delivery receipt, notated with the damage or shortage', must: true },
+    { id: 'annual', text: 'Your company’s annual report', must: false },
+    { id: 'photo', text: 'A photo of the ship from a vessel-tracking site', must: false },
+    { id: 'rules', text: 'A printout of the Incoterms rulebook', must: false },
+    { id: 'brochure', text: 'The carrier’s marketing brochure', must: false }
+  ];
+  function claimMultiplier(deadlineOk, docIds) {
+    const musts = CLAIM_DOCS.filter(d => d.must).map(d => d.id);
+    const right = docIds.filter(id => musts.indexOf(id) >= 0).length;
+    const wrongDocs = musts.length - right;
+    let m = 1;
+    if (!deadlineOk) m -= 0.40;
+    m -= 0.10 * wrongDocs;
+    return { multiplier: Math.max(0, round2(m)), wrongDocs, deadlineOk };
+  }
+
+  return {
+    SDR_CAD, SDR_DATE, BASE_RATE, WS_RATE, REEFER_RATE, DECLARE_PCT, VALUATION, COVER_ORDER, MODES,
+    STAGE_LABELS, STAGE_ICONS, TERM_LIST, TERMS, CARGOES, CARGO_BY_ID, PERILS, EVENTS, EVENT_BY_ID, WHY_COVER,
+    NOTICE, CLAIM_DOCS,
+    limitPerKgCAD, carrierModeAt, termAllowed, defaultTermFor, coverRank, coverFloor, stagesAtRisk,
+    round2, makeRng, stagesFor, baseP, poolFactor, pEff, sevRange, applies, poolFor, carrierLiable, isCovered,
+    buildPremium, rateParts, premiumLines, declareFee, classExample, carrierLimitInfo,
+    dealCards, rollVoyage, evaluate, comparisonCtx, simulate, claimMultiplier
+  };
+});
+
+</script>
+<script>
+/* Insure It or Risk It? - UI. Talks to the Engine only. No storage, no network. */
+(function () {
+  'use strict';
+  const E = window.Engine;
+
+  /* ---------------- tiny helpers ---------------- */
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const num = n => Math.round(n).toLocaleString('en-CA');
+  const fmt = n => 'C$' + (Math.abs(n) < 100 ? n.toFixed(2) : num(n));
+  const fmt2 = n => 'C$' + n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtP = p => { const d = p >= 10 ? 0 : p >= 1 ? 1 : p >= 0.1 ? 2 : 3; return (+p.toFixed(d)).toString() + '%'; };
+  const r3 = n => (+n.toFixed(3)).toString();
+  const shareTxt = x => (x >= 0.1 ? Math.round(x * 100) : +(x * 100).toFixed(1)) + '%';
+  const reduceMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const dots = n => '●'.repeat(n) + '○'.repeat(5 - n);
+
+  const FRESH_CLAIM = () => ({ deadline: null, docs: [], done: false, mult: 1 });
+  const state = {
+    step: 1, cargoId: null, mode: null, role: 'seller', term: null,
+    cover: 'none', ws: false, reefer: false, declare: false, odds: 1,
+    voyage: null, fresh: false, running: false, heist: false, sim: null, claim: FRESH_CLAIM()
+  };
+  const cargo = () => E.CARGO_BY_ID[state.cargoId];
+  function ctx(over) {
+    const c = { cargo: cargo(), mode: state.mode, role: state.role, term: E.TERMS[state.term],
+      cover: state.cover, warStrikes: state.ws, reefer: state.reefer, declare: state.declare, odds: state.odds };
+    return over ? Object.assign(c, over) : c;
+  }
+  function coverLabel(c) {
+    if (c.cover === 'none') return 'No cover' + (c.declare ? ' + declared value' : '');
+    return 'ICC ' + c.cover + (c.warStrikes ? ' + war and strikes' : '') + (c.reefer ? ' + refrigerated goods' : '') + (c.declare ? ' + declared value' : '');
+  }
+  function invalidate() { state.voyage = null; state.fresh = false; state.sim = null; state.heist = false; state.claim = FRESH_CLAIM(); }
+  function canGo(n) {
+    if (n === 1) return true;
+    if (n === 2) return !!state.cargoId;
+    if (n === 3 || n === 4) return !!(state.cargoId && state.mode && state.term);
+    return !!(state.voyage && !state.fresh);
+  }
+  function stageLabel(i) { return E.STAGE_LABELS[state.mode][i]; }
+  function bumpCover() {
+    const floor = E.coverFloor(E.TERMS[state.term]);
+    if (E.coverRank(state.cover) < E.coverRank(floor)) state.cover = floor;
+  }
+
+  /* ---------------- stepper and navigation ---------------- */
+  function renderStepper() {
+    const labels = ['Cargo', 'Deal', 'Cover', 'Voyage', 'Who pays', 'Claim'];
+    $('#stepper').innerHTML = '<ol>' + labels.map((l, i) => {
+      const n = i + 1, cur = n === state.step, ok = canGo(n), done = ok && n < state.step;
+      return `<li><button class="step ${cur ? 'cur' : ''} ${done ? 'done' : ''}" data-act="goto" data-step="${n}" ${ok ? '' : 'disabled'} aria-label="Step ${n}: ${l}" ${cur ? 'aria-current="step"' : ''}><span class="n">${done ? '✓' : n}</span><span class="t">${l}</span></button></li>`;
+    }).join('') + '</ol>';
+  }
+  function go(n, noScroll) {
+    if (!canGo(n)) return;
+    const changed = n !== state.step;
+    state.step = n;
+    render();
+    if (changed && !noScroll) {
+      const top = $('#app').getBoundingClientRect().top + window.scrollY - 62;
+      window.scrollTo({ top: Math.max(0, top), behavior: reduceMotion() ? 'auto' : 'smooth' });
+    }
+  }
+  const nav = (backTo, nextOk, nextLabel, nextAct) =>
+    `<div class="nav">${backTo ? `<button class="btn" data-act="back">← Back</button>` : '<span></span>'}${nextLabel ? `<button class="btn primary" data-act="${nextAct || 'next'}" ${nextOk ? '' : 'disabled'}>${nextLabel} →</button>` : '<span></span>'}</div>`;
+
+  /* ---------------- step 1: cargo ---------------- */
+  function view1() {
+    const card = c => {
+      const sel = state.cargoId === c.id;
+      return `<button class="card choice ${sel ? 'sel' : ''}" data-act="cargo" data-id="${c.id}" aria-pressed="${sel}">
+        <span class="big-emoji" aria-hidden="true">${c.icon}</span>
+        <span class="ctitle">${c.name}</span>
+        <span class="route">${c.routes[c.defMode]}</span>
+        <span class="facts"><b>${fmt(c.value)}</b> · ${num(c.weight)} kg · ${fmt(c.value / c.weight)} per kg</span>
+        <span class="meters"><span class="meter" aria-label="Fragile ${c.fragileDots} out of 5">Fragile <b>${dots(c.fragileDots)}</b></span><span class="meter" aria-label="Thief appeal ${c.theftDots} out of 5">Thief appeal <b>${dots(c.theftDots)}</b></span></span>
+        <span class="blurb">${c.blurb}</span>
+      </button>`;
+    };
+    return `<section class="panel"><h2><span class="num">1</span> Pick your shipment</h2>
+      <p class="lead">Five cargoes, five different headaches. Tap one to start.</p>
+      <div class="grid cargo-grid">${E.CARGOES.map(card).join('')}</div>
+      ${nav(false, !!state.cargoId, 'Next: route and Incoterm')}</section>`;
+  }
+
+  /* ---------------- step 2: deal ---------------- */
+  function timelineHTML(t) {
+    const labels = E.STAGE_LABELS[state.mode], icons = E.STAGE_ICONS[state.mode];
+    return '<ol class="timeline">' + labels.map((lab, i) => {
+      const bearer = i >= t.buyerFrom ? 'buyer' : 'seller';
+      const mine = bearer === state.role;
+      return `<li class="stage ${bearer} ${mine ? 'mine' : ''} ${i === t.buyerFrom ? 'pass' : ''}"><span class="node" aria-hidden="true"><span>${icons[i]}</span></span><span class="lab">${lab}</span><span class="who">${bearer === 'seller' ? 'Seller' : 'Buyer'}’s risk${mine ? ' · YOU' : ''}</span></li>`;
+    }).join('') + '</ol>';
+  }
+  function limitBox() {
+    const info = E.carrierLimitInfo(ctx()), c = cargo(), m = state.mode;
+    const perKgTxt = m === 'road' ? 'CAD $4.41 per kg' : `${m === 'ocean' ? 2 : 26} SDR per kg × ${E.SDR_CAD} = C$${info.perKg.toFixed(2)} per kg`;
+    const s = info.shareOfValue;
+    const verdict = s >= 1
+      ? `That is <b>more than the whole cargo is worth</b> (${Math.round(s * 100)}% of its value). For heavy, low-value cargo the legal limit can already cover the goods.`
+      : `That is only <b>${shareTxt(s)}</b> of what your cargo is worth.`;
+    return `<div class="box2"><b>What the carrier owes you, at most</b>
+      <p class="small">${E.MODES[m].label} limit: ${perKgTxt}. 1 SDR = C$${E.SDR_CAD} on ${E.SDR_DATE} (IMF, 2026).${m === 'air' ? ' The limit was 22 SDR per kg until December 28, 2024 (ICAO, 2024; Seneca Polytechnic, 2026).' : ''}</p>
+      <p>${perKgTxt.split(' = ').pop()} × ${num(c.weight)} kg = <b>${fmt(info.max)}</b>. ${verdict}</p>
+      <div class="meterbar" role="img" aria-label="Carrier limit as a share of cargo value"><i style="width:${Math.min(100, s * 100)}%"></i></div>
+      <p class="small">…and only if the carrier is actually liable for what went wrong. Many causes (storms, packing, delay) are not its fault.</p></div>`;
+  }
+  function view2() {
+    const c = cargo();
+    const t = state.term ? E.TERMS[state.term] : null;
+    const modes = c.modes.map(m => `<button class="segbtn ${state.mode === m ? 'sel' : ''}" data-act="mode" data-id="${m}" aria-pressed="${state.mode === m}">${E.MODES[m].icon} ${E.MODES[m].label}</button>`).join('');
+    const roles = ['seller', 'buyer'].map(r => `<button class="segbtn ${state.role === r ? 'sel' : ''}" data-act="role" data-id="${r}" aria-pressed="${state.role === r}"><span>${r === 'seller' ? '🏭 I’m the seller' : '🏬 I’m the buyer'}<small>${r === 'seller' ? 'I ship it out' : 'I receive it'}</small></span></button>`).join('');
+    const termBtn = x => {
+      const ok = E.termAllowed(x, state.mode);
+      return `<button class="term ${state.term === x.code ? 'sel' : ''}" data-act="term" data-id="${x.code}" ${ok ? '' : 'disabled'} aria-pressed="${state.term === x.code}" title="${ok ? x.name : 'Sea-only term: pick Ocean to use it'}"><b>${x.code}</b><small>${x.name}</small>${x.insure ? '<span class="ins">🛡 seller must insure</span>' : ''}</button>`;
+    };
+    const any = E.TERM_LIST.filter(x => x.group === 'any'), sea = E.TERM_LIST.filter(x => x.group === 'sea');
+    let info = '';
+    if (t) {
+      const mine = E.stagesAtRisk(t, state.role);
+      info = `<div class="terminfo"><h4>${t.code} · ${t.name}</h4><p>${t.blurb}</p>
+        <p><span class="tag">Freight paid by the ${t.freight}</span>${t.insure ? `<span class="tag green">🛡 Seller must insure: at least ICC ${t.insure}, for 110% of the price</span>` : '<span class="tag">Nobody has to insure. Whoever is at risk decides.</span>'}</p>
+        <p class="small" style="margin:0">Risk passes to the buyer <b>${t.pass}</b>.</p></div>
+        ${timelineHTML(t)}
+        <div class="legend"><span><i class="dot seller"></i>Seller’s risk</span><span><i class="dot buyer"></i>Buyer’s risk</span><span>⚑ risk passes here</span><span>Filled circle = you</span></div>
+        <div class="callout ${mine.length === 0 ? 'warn' : ''}">${mine.length === 0
+          ? `As the <b>seller under ${t.code}</b> you carry <b>none</b> of the trip’s risk, so cover would protect nothing of yours. The buyer should insure.`
+          : `As the <b>${state.role}</b> under ${t.code} you carry the risk for <b>${mine.length} of 7</b> steps. A loss anywhere else is the other party’s loss, and you can’t claim for it (that’s <b>insurable interest</b>).`}</div>
+        ${limitBox()}`;
+    }
+    return `<section class="panel"><h2><span class="num">2</span> Route, role and Incoterm</h2>
+      <p class="lead">${c.icon} <b>${c.name}</b>: ${c.routes[state.mode]} · ${fmt(c.value)} · ${num(c.weight)} kg</p>
+      <h3 class="sec" style="margin-top:6px">How does it travel?</h3><div class="seg">${modes}</div>
+      <h3 class="sec">Which side are you on?</h3><div class="seg">${roles}</div>
+      <h3 class="sec">Which Incoterm did you agree?</h3>
+      <div class="callout"><b>Only two Incoterms make the seller buy insurance: CIF and CIP.</b> For every other term, whoever is at risk has to decide for themselves, by weighing the cargo’s value against the cost of cover.</div>
+      <div class="group-h">Any mode</div><div class="terms">${any.map(termBtn).join('')}</div>
+      <div class="group-h">Sea only ${state.mode === 'ocean' ? '' : '(pick Ocean to use these)'}</div><div class="terms">${sea.map(termBtn).join('')}</div>
+      ${info}
+      ${nav(true, !!t, 'Next: choose cover')}</section>`;
+  }
+
+  /* ---------------- step 3: cover ---------------- */
+  function perilsTable() {
+    const sel = state.cover;
+    const hl = L => (sel === L ? 'hl' : '');
+    let h = `<table class="perils"><thead><tr><th>What happens</th><th class="${hl('A')}">A</th><th class="${hl('B')}">B</th><th class="${hl('C')}">C</th></tr></thead><tbody>`;
+    E.PERILS.forEach(g => {
+      h += `<tr class="gh"><td colspan="4">${g.group}</td></tr>`;
+      g.rows.forEach(r => {
+        h += `<tr><td>${r}</td>` + ['A', 'B', 'C'].map(L => g.cover.indexOf(L) >= 0 ? `<td class="yes ${hl(L)}">✔</td>` : `<td class="no ${hl(L)}">✖</td>`).join('') + '</tr>';
+      });
+    });
+    return h + '</tbody></table>';
+  }
+  function calcTable(b, rp) {
+    const rate = r3(rp.total) ;
+    const row = (op, label, val, cls) => `<tr class="${cls || ''}"><td class="op">${op}</td><td>${label}</td><td>${fmt2(val)}</td></tr>`;
+    return `<table class="calc"><tbody>
+      ${row('', 'Goods (invoice value)', b.goods)}
+      ${row('+', 'Freight', b.freight)}
+      ${row('=', 'Cost and freight (CFR value)', b.cfr, 'sum')}
+      ${row('+', `Estimated premium ($${rate} per $100 of CFR)`, b.est)}
+      ${row('=', 'Cost, insurance and freight (CIF value)', b.cif, 'sum')}
+      ${row('+', '10% valuation (extra costs, lost market value, claim admin)', b.val)}
+      ${row('=', 'Insured value: what the policy is for', b.insured, 'sum')}
+      ${row('', `Premium ($${rate} per $100 of insured value)`, b.premium, 'final')}
+    </tbody></table>`;
+  }
+  function view3() {
+    const c = ctx(), t = c.term, cg = c.cargo, floor = E.coverFloor(t);
+    const defs = [
+      { id: 'none', name: 'No cover', desc: 'No policy. You rely on the carrier’s legal limit and your own cash.', rate: '' },
+      { id: 'C', name: 'ICC C', desc: 'Basic: fire, sinking, collision, overturned vehicles, plane crash, general average, jettison, port of distress.', rate: `$${E.BASE_RATE.C.toFixed(2)} per $100 (illustrative)` },
+      { id: 'B', name: 'ICC B', desc: 'C plus washing overboard, bad weather, handling losses, breakage, leakage and water getting in.', rate: `$${E.BASE_RATE.B.toFixed(2)} per $100 (illustrative)` },
+      { id: 'A', name: 'ICC A (all risks)', desc: 'Everything in B plus theft and damage by other cargo. Still no delay, bad packing or wear.', rate: `$${E.BASE_RATE.A.toFixed(2)} per $100 (class rate)` }
+    ];
+    const covCard = d => {
+      const locked = E.coverRank(d.id) < E.coverRank(floor);
+      return `<button class="card choice cov ${state.cover === d.id ? 'sel' : ''}" data-act="cover" data-id="${d.id}" ${locked ? 'disabled' : ''} aria-pressed="${state.cover === d.id}">
+        <h4>${d.name}</h4><p>${d.desc}</p>${d.rate ? `<span class="rate">${d.rate}</span>` : ''}${locked ? `<span class="tag red">Not allowed under ${t.code}</span>` : ''}</button>`;
+    };
+    const none = state.cover === 'none';
+    const tog = (k, on, title, sub, dis) => `<button class="tog ${on ? 'on' : ''}" data-act="toggle" data-k="${k}" ${dis ? 'disabled' : ''} aria-pressed="${on}"><span class="box" aria-hidden="true">${on ? '✓' : ''}</span><span><b>${title}</b><small>${sub}</small></span></button>`;
+    let toggles = tog('ws', state.ws && !none, 'War and strikes add-on', `Strikes and war are in no ICC level. Adds $${E.WS_RATE.toFixed(2)} per $100 (class rate).${none ? ' Needs a policy.' : ''}`, none);
+    if (cg.perishable) toggles += tog('reefer', state.reefer && !none, 'Refrigerated goods add-on', `Covers the fridge breaking down. Adds $${E.REEFER_RATE.toFixed(2)} per $100 (illustrative).${none ? ' Needs a policy.' : ''}`, none);
+    if (state.mode === 'air') toggles += tog('declare', state.declare, 'Declare the value to the airline', `The airline then owes the full declared value instead of 26 SDR per kg. Fee: ${E.DECLARE_PCT}% of the cargo’s value (illustrative). This is what was missing in the gold heist.`, false);
+
+    const pl = E.premiumLines(c);
+    const fee = E.declareFee(c);
+    let prem;
+    if (none) prem = '<p>No policy, so no premium.</p>';
+    else {
+      const rp = pl.rate;
+      prem = `<p class="small">Rate: ICC ${state.cover} $${E.BASE_RATE[state.cover].toFixed(2)} per $100 × cargo risk factor ${rp.loading} (illustrative: ${esc(cg.name)})${rp.ws ? ` + war and strikes $${rp.ws.toFixed(2)}` : ''}${rp.reefer ? ` + refrigerated $${rp.reefer.toFixed(2)}` : ''} = <b>$${r3(rp.total)} per $100</b>.</p>${calcTable(pl.build, rp)}`;
+    }
+    const worstCase = cg.value;
+    const totalCost = pl.premium + fee;
+    const exb = E.classExample();
+    const ex = exb.build;
+    return `<section class="panel"><h2><span class="num">3</span> Choose your cover</h2>
+      <p class="lead">${t.insure ? `<b>${t.code}</b> means the seller must provide at least <b>ICC ${t.insure}</b>. Cheaper options are locked.` : `Under <b>${t.code}</b> nobody has to insure. Do you?`} Cover follows the goods and pays whoever is at risk when the loss happens.</p>
+      <div class="covers">${defs.map(covCard).join('')}</div>
+      <div class="toggles">${toggles}</div>
+      <h3 class="sec">What it costs</h3>
+      ${prem}
+      ${fee ? `<p>Declared-value fee to the airline: <b>${fmt2(fee)}</b> (${E.DECLARE_PCT}% of ${fmt(cg.value)}, illustrative).</p>` : ''}
+      <div class="callout ${totalCost === 0 ? 'warn' : 'good'}">${totalCost === 0
+        ? `You’re protecting <b>nothing</b>. A total loss would cost you up to <b>${fmt(worstCase)}</b> (while you’re at risk).`
+        : `Protection costs <b>${fmt(totalCost)}</b> per trip, which is <b>${(100 * totalCost / cg.value).toFixed(2)}%</b> of the cargo’s value. Losing the whole cargo costs 100%.`}</div>
+      <details><summary>Which perils does each cover include?</summary><div class="in scroll">${perilsTable()}<p class="small">Per the Seneca course slide, simplified. Real Institute Cargo Clauses wording is more detailed: read the actual policy. Strikes and war need the add-on above.</p></div></details>
+      <details><summary>Check my maths: the class worked example</summary><div class="in">
+        <p class="small">Goods $100,000, freight $3,000, rate $0.30 per $100 (Seneca Polytechnic, 2026).</p>
+        <table class="calc"><tbody>
+          <tr><td class="op"></td><td>Goods</td><td>${fmt2(ex.goods)}</td></tr>
+          <tr><td class="op">+</td><td>Freight</td><td>${fmt2(ex.freight)}</td></tr>
+          <tr class="sum"><td class="op">=</td><td>CFR value</td><td>${fmt2(ex.cfr)}</td></tr>
+          <tr><td class="op">+</td><td>Estimated premium (0.3% of CFR)</td><td>${fmt2(ex.est)}</td></tr>
+          <tr class="sum"><td class="op">=</td><td>CIF value</td><td>${fmt2(ex.cif)}</td></tr>
+          <tr><td class="op">+</td><td>10% valuation</td><td>${fmt2(ex.val)}</td></tr>
+          <tr class="sum"><td class="op">=</td><td>Insured value</td><td>${fmt2(ex.insured)}</td></tr>
+          <tr class="final"><td class="op"></td><td>Premium (0.3% of insured value)</td><td>${fmt2(ex.premium)}</td></tr>
+        </tbody></table>
+        <p class="small">${exb.ok ? '✔ The game’s calculator reproduces these numbers exactly.' : '⚠ The calculator does not match the class example. Please report it.'}</p></div></details>
+      ${nav(true, true, 'Next: the voyage')}</section>`;
+  }
+
+  /* ---------------- step 4: voyage ---------------- */
+  function covLine(ev) {
+    const c = ctx();
+    if (c.cover === 'none') return `<p class="covline no">✖ No policy<small>${ev.cov === 'none' ? 'No policy would cover this anyway.' : 'You would rely on the carrier’s legal limit, if it is liable.'}</small></p>`;
+    const yes = E.isCovered(ev, c);
+    return `<p class="covline ${yes ? 'yes' : 'no'}">${yes ? '✔ Your cover includes this' : '✖ Your cover does not include this'}<small>${E.WHY_COVER[ev.cov]}</small></p>`;
+  }
+  function verdictHTML(cd) {
+    if (!cd.happened) return '✅ Didn’t happen';
+    return `💥 It happened${cd.forced ? ' <span class="forced">forced</span>' : ''}<br><small>${esc(stageLabel(cd.stage))}</small>`;
+  }
+  function hazHTML(cd, i, revealed) {
+    const ev = cd.ev;
+    const dice = revealed ? (cd.forced ? 'Forced' : cd.roll.toFixed(2)) : '–';
+    const need = cd.forced ? 'Staged so you can see who pays' : `A hit needs under ${fmtP(cd.p).replace('%', '')} (out of 100)`;
+    return `<article class="haz ${revealed ? 'rev ' + (cd.happened ? 'hit' : 'safe') : 'pending'}" data-i="${i}">
+      <header><span class="hz-ico" aria-hidden="true">${ev.icon}</span><h4>${esc(ev.name)}</h4><span class="chance">${fmtP(cd.p)}<small>chance</small></span></header>
+      <p class="story">${esc(ev.story)}</p>${covLine(ev)}
+      <div class="result"><span class="dice">🎲 ${cd.forced ? '' : 'Rolled '}<b class="dn">${dice}</b><small>${need}</small></span><span class="verdict">${revealed ? verdictHTML(cd) : ''}</span></div></article>`;
+  }
+  function simHTML() {
+    const s = state.sim;
+    const lbl = coverLabel(s.cov);
+    const mx = v => Math.max(1e-9, v);
+    const maxAvg = mx(Math.max(s.avgNone, s.avgCover)), maxWorst = mx(Math.max(s.worstNone, s.worstCover));
+    const more = s.avgCover - s.avgNone;
+    const noisy = ' Big losses are rare, so one run of 1,000 is noisy: press the button again and the averages move.';
+    let detail;
+    if (s.exposure === 0) detail = `As the seller under ${state.term} you carry no transit risk, so any premium is pure cost.`;
+    else if (more > 0) detail = `In this run the cover cost <b>${fmt(more)}</b> more per voyage on average. In exchange, your worst voyage fell from <b>${fmt(s.worstNone)}</b> to <b>${fmt(s.worstCover)}</b>.${noisy}`;
+    else detail = `This run came out the other way: the claims paid out more than the premium cost. Your worst voyage went from <b>${fmt(s.worstNone)}</b> to <b>${fmt(s.worstCover)}</b>.${noisy}`;
+    const clean = s.eventFreq > 0 ? `<p class="small">Longest run with nothing going wrong: <b>${s.longestClean}</b> voyages. At these odds about <b>${Math.round(100 * Math.pow(1 - s.eventFreq, 100))}%</b> of people who ship 100 times would never see a problem, so a clean record proves less than it feels like.</p>` : '';
+    return `<h3 class="sec">1,000 voyages, same set-up</h3>
+      <p class="small">Same cargo, route, Incoterm and role. Illustrative odds. Costs are premium plus whatever you end up paying yourself after the carrier and insurer.</p>
+      <div class="simgrid">
+        <div class="simcard none"><h4>Without insurance</h4>
+          <div class="big">${fmt(s.avgNone)}</div><div class="lbl">average cost per voyage</div>
+          <div class="bar2"><i style="width:${100 * s.avgNone / maxAvg}%"></i></div>
+          <div class="big">${fmt(s.worstNone)}</div><div class="lbl">worst single voyage</div>
+          <div class="bar2"><i style="width:${100 * s.worstNone / maxWorst}%"></i></div>
+          <div class="lbl">Voyages where you paid a loss: <b>${s.lossNone}</b> of ${s.n}</div></div>
+        <div class="simcard cov"><h4>With ${esc(lbl)}</h4>
+          <div class="big">${fmt(s.avgCover)}</div><div class="lbl">average cost per voyage (premium ${fmt(s.premium)} + uncovered losses)</div>
+          <div class="bar2"><i style="width:${100 * s.avgCover / maxAvg}%"></i></div>
+          <div class="big">${fmt(s.worstCover)}</div><div class="lbl">worst single voyage</div>
+          <div class="bar2"><i style="width:${100 * s.worstCover / maxWorst}%"></i></div>
+          <div class="lbl">Voyages where you still paid a loss: <b>${s.lossCover}</b> of ${s.n}</div></div>
+      </div>
+      ${s.cov.comparison ? '<p class="small">You chose no cover, so the right-hand card shows ICC A with war and strikes for comparison.</p>' : ''}
+      <p class="take">Insurance usually costs a little more on average. What you’re buying is protection from the one voyage that would sink your business.</p>
+      <p>${detail}</p>${clean}`;
+  }
+  function view4() {
+    const c = ctx(), cg = c.cargo, t = c.term;
+    const hasV = !!state.voyage;
+    const dis = state.running ? 'disabled' : '';
+    const odds = [[0.5, 'Calm seas', '×0.5'], [1, 'Teaching odds', '×1'], [4, 'Stormy season', '×4']]
+      .map(o => `<button class="segbtn ${state.odds === o[0] ? 'sel' : ''}" data-act="odds" data-v="${o[0]}" aria-pressed="${state.odds === o[0]}" ${dis}>${o[1]} <small>${o[2]}</small></button>`).join('');
+    let dealt = '', after = '';
+    if (hasV) {
+      dealt = `<div class="dealt" aria-live="polite">${state.voyage.cards.map((cd, i) => hazHTML(cd, i, !state.fresh)).join('')}</div>`;
+      if (!state.fresh) {
+        const hit = state.voyage.cards.filter(x => x.happened).length;
+        after = `<div class="callout ${hit ? 'bad' : 'good'}">${hit ? `<b>${hit}</b> of the 4 hazards struck.` : '<b>Smooth voyage.</b> None of the four hazards struck. That is what most voyages look like.'}</div>
+          <div class="btnrow"><button class="btn primary" data-act="next">Who pays? →</button></div>`;
+      }
+    }
+    return `<section class="panel"><h2><span class="num">4</span> The voyage</h2>
+      <div class="recap"><span class="tag">${cg.icon} ${cg.name}</span><span class="tag">${E.MODES[c.mode].icon} ${E.MODES[c.mode].label}</span><span class="tag ${c.role}">${c.role === 'seller' ? 'Seller' : 'Buyer'}</span><span class="tag">${t.code}</span><span class="tag ${c.cover === 'none' ? 'red' : 'green'}">${esc(coverLabel(c))}</span></div>
+      <p class="lead">Four hazards are dealt from the pool for your cargo and route. The % on each card is its chance of striking on this trip. Then the dice roll. <span class="illus">🎲 illustrative, not actuarial</span></p>
+      <div class="dial" role="group" aria-label="Odds dial">${odds}</div>
+      <div class="btnrow">
+        <button class="btn primary" data-act="roll" ${dis}>🎲 Roll the dice</button>
+        <button class="btn" data-act="bad" ${dis}>💥 Show me a bad one</button>
+        <button class="btn dark" data-act="sim" ${dis}>🔁 Run 1,000 voyages</button>
+      </div>
+      <p class="small">“Show me a bad one” forces one hazard to strike while you’re at risk, so you can see who pays. The chance on its card is still the real chance.</p>
+      ${dealt}${after}
+      ${state.sim ? simHTML() : ''}
+      ${nav(true, false, '')}</section>`;
+  }
+
+  function revealCard(el, cd) {
+    el.classList.remove('pending', 'flip');
+    el.classList.add('rev', cd.happened ? 'hit' : 'safe');
+    $('.dn', el).textContent = cd.forced ? 'Forced' : cd.roll.toFixed(2);
+    $('.verdict', el).innerHTML = verdictHTML(cd);
+  }
+  function runReveal() {
+    state.running = true;
+    const cards = $$('.haz');
+    const quick = reduceMotion();
+    let i = 0;
+    const finish = () => { state.fresh = false; state.running = false; render(); };
+    const next = () => {
+      if (!cards.length || !document.body.contains(cards[0])) { state.fresh = false; state.running = false; return; }
+      if (i >= cards.length) { setTimeout(finish, quick ? 0 : 350); return; }
+      const el = cards[i], cd = state.voyage.cards[i];
+      if (quick) { revealCard(el, cd); i++; next(); return; }
+      el.classList.add('flip');
+      const dn = $('.dn', el);
+      let n = 0;
+      const iv = setInterval(() => {
+        dn.textContent = (Math.random() * 100).toFixed(2);
+        if (++n >= 9) { clearInterval(iv); revealCard(el, cd); i++; setTimeout(next, 380); }
+      }, 55);
+    };
+    next();
+  }
+  function startVoyage(opts) {
+    if (state.running) return;
+    state.voyage = E.rollVoyage(ctx(), Math.random, opts || {});
+    state.fresh = true; state.heist = false; state.claim = FRESH_CLAIM();
+    state.step = 4;
+    render();
+    const top = $('#app').getBoundingClientRect().top + window.scrollY - 62;
+    window.scrollTo({ top: Math.max(0, top), behavior: reduceMotion() ? 'auto' : 'smooth' });
+  }
+  function runSim() {
+    if (state.running) return;
+    state.sim = E.simulate(ctx(), 1000, Math.random);
+    state.step = 4;
+    render();
+    const el = $('.simgrid');
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 140, behavior: reduceMotion() ? 'auto' : 'smooth' });
+  }
+
+  /* ---------------- step 5: who pays ---------------- */
+  function limitText(o) {
+    const cm = o.carrierMode;
+    if (o.declared) return 'you declared the value, so the limit is the full value';
+    const perKg = E.limitPerKgCAD(cm);
+    const unit = cm === 'road' ? 'CAD $4.41 per kg' : `${cm === 'ocean' ? 2 : 26} SDR per kg = C$${perKg.toFixed(2)} per kg`;
+    return `${E.MODES[cm].label.toLowerCase()} limit: ${unit} × ${num(cargo().weight)} kg × ${shareTxt(o.sevEff)} lost`;
+  }
+  function explain(o, c) {
+    const ev = o.ev, t = c.term, where = esc(stageLabel(o.stage));
+    const head = `${ev.icon} ${esc(ev.name)} <span class="tag ${o.bearer}">${where}</span>`;
+    if (!o.mine) {
+      return `<div class="evt other"><h4>${head}</h4><p><b>Not your loss.</b> At that moment the <b>${o.bearer}</b> was at risk under ${t.code} (risk passes to the buyer ${t.pass}). Insurable interest sits with the ${o.bearer}: you can’t claim, and they can.</p></div>`;
+    }
+    if (o.gone) return `<div class="evt other"><h4>${head}</h4><p>Nothing left to lose: the cargo was already lost earlier on this trip.</p></div>`;
+    const li = [];
+    const adds = (c.warStrikes ? ' + war and strikes' : '') + (c.reefer ? ' + refrigerated' : '');
+    if (o.isGA) {
+      li.push(`<li>Your cargo is fine, but you still owe <b>${shareTxt(o.sevEff)}</b> of its value (<b>${fmt(o.loss)}</b>) as your share of the ship’s emergency costs and the cargo that was sacrificed. The fortunate owners pay for the unlucky ones.</li>`);
+      li.push('<li>You must post security before your goods are released: a <b>cash deposit or an insurer’s guarantee</b>.</li>');
+      li.push(o.covered
+        ? `<li>✔ ICC ${c.cover} covers general average. Your insurer issues the guarantee and pays <b>${fmt(o.insurerPays)}</b>.</li>`
+        : `<li>✖ No policy: you post <b>${fmt(o.loss)}</b> in cash before release (a cash-flow hit) and wait months for the final bill.</li>`);
+    } else {
+      li.push(`<li>Loss: <b>${fmt(o.loss)}</b> (${shareTxt(o.sevEff)} of the cargo).</li>`);
+      if (o.carrierMode === null) li.push('<li>Carrier: nobody. It happened on a dock, so there is no carrier to claim from.</li>');
+      else if (!o.liable) li.push(`<li>Carrier: <b>not liable.</b> ${esc(ev.carrierWhy || '')}</li>`);
+      else li.push(`<li>Carrier: liable, but only up to its legal limit (${limitText(o)}). Most it owes: <b>${fmt(o.carrierMax)}</b>. It pays <b>${fmt(o.carrierPays)}</b>.</li>`);
+      if (c.cover === 'none') li.push('<li>Cover: you bought none.</li>');
+      else if (o.covered) li.push(`<li>✔ ICC ${c.cover}${adds} covers this. The insurer pays <b>${fmt(o.insurerPays)}</b>${o.carrierPays > 0 ? ' and then recovers the carrier’s share from the carrier (subrogation)' : ''}.</li>`);
+      else li.push(`<li>✖ Not covered. ${E.WHY_COVER[ev.cov]}</li>`);
+    }
+    li.push(`<li>You pay: <b>${fmt(o.youPay)}</b>.</li>`);
+    return `<div class="evt mine"><h4>${head}</h4><ul>${li.join('')}</ul></div>`;
+  }
+  function stackHTML(tot, label) {
+    const parts = [['car', 'Carrier', tot.carrier], ['ins', 'Insurer', tot.insurer], ['you', 'YOU', tot.you]];
+    const total = Math.max(1e-9, tot.carrier + tot.insurer + tot.you);
+    return `<div class="stack" role="img" aria-label="${label || 'Who pays'}: carrier ${fmt(tot.carrier)}, insurer ${fmt(tot.insurer)}, you ${fmt(tot.you)}">${parts.filter(p => p[2] > 0).map(p => `<div class="s-${p[0]}" style="flex-grow:${p[2] / total * 1000}"></div>`).join('')}</div>
+      <div class="keys">${parts.map(p => `<div class="key ${p[0]}"><small>${p[1]} ${p[0] === 'car' ? '(legal limit)' : p[0] === 'ins' ? '(your cover)' : '(your own pocket)'}</small><b>${fmt(p[2])}</b>${tot.carrier + tot.insurer + tot.you > 0 ? `<small>${shareTxt(p[2] / total)} of the loss</small>` : ''}</div>`).join('')}</div>`;
+  }
+  function whatIf(c, res) {
+    const cg = c.cargo, floor = E.coverFloor(c.term);
+    const curKey = [c.cover, c.warStrikes, c.reefer, c.declare].join('|');
+    const list = [];
+    const add = (label, cover, ws, reefer, declare) => {
+      if (E.coverRank(cover) < E.coverRank(floor)) return;
+      if ([cover, ws, reefer, declare].join('|') === curKey) return;
+      list.push({ label, cover, ws, reefer, declare });
+    };
+    add('No cover', 'none', false, false, false);
+    add('ICC C', 'C', false, false, false);
+    add('ICC B', 'B', false, false, false);
+    add('ICC A', 'A', false, false, false);
+    add('ICC A + war and strikes' + (cg.perishable ? ' + refrigerated' : ''), 'A', true, !!cg.perishable, false);
+    if (c.mode === 'air') { add('No cover + declared value', 'none', false, false, true); add('ICC A + war and strikes + declared value', 'A', true, false, true); }
+    const rowOf = (label, cc, cur) => {
+      const r = E.evaluate(cc, state.voyage);
+      const prem = E.premiumLines(cc).premium + E.declareFee(cc);
+      return { label, cur, prem, you: r.totals.you, total: prem + r.totals.you };
+    };
+    const rows = [rowOf('Your choice: ' + coverLabel(c), c, true)].concat(list.map(o => rowOf(o.label, Object.assign({}, c, { cover: o.cover, warStrikes: o.ws, reefer: o.reefer, declare: o.declare }), false)));
+    const best = Math.min.apply(null, rows.map(r => r.total));
+    return `<h3 class="sec">Same voyage, different cover</h3>
+      <p class="small">The dice are frozen. Only your decision changes. Hindsight is easy: you can’t choose cover after the roll, which is why the 1,000-voyage run matters.${c.mode === 'air' ? ' A declared value only raises what the airline owes when the airline is liable. It is not insurance: it does not help with war, packing or delay.' : ''}</p>
+      <ul class="wi">${rows.map(r => {
+        const isBest = Math.abs(r.total - best) < 0.005;
+        return `<li class="${r.cur ? 'cur' : ''} ${isBest ? 'best' : ''}"><div class="wl">${r.cur ? '<b>Your choice</b>' : ''}<span>${esc(r.cur ? coverLabel(c) : r.label)}</span></div><div class="wn"><span>Premium and fees <b>${fmt(r.prem)}</b></span><span>You pay for losses <b>${fmt(r.you)}</b></span></div><div class="wt">${fmt(r.total)}<small>${isBest ? '✔ cheapest' : 'total cost'}</small></div></li>`;
+      }).join('')}</ul>`;
+  }
+  function view5() {
+    const c = ctx();
+    const res = E.evaluate(c, state.voyage);
+    const tot = res.totals;
+    const prem = E.premiumLines(c).premium, fee = E.declareFee(c);
+    const paid = prem + fee;
+    const anyMine = tot.eventsMine > 0;
+    let body = '';
+    if (state.heist) {
+      body += `<div class="callout warn">🪙 <b>Replay: Toronto Pearson, April 2023.</b> About 400 kg of gold worth about C$20 million is taken from the destination terminal. You’re the buyer under FCA with no cover and no declared value (my assumed set-up). See how thin the amber slice (the airline) is next to the red one (you). Then check the options below: what if the value had been declared?</div>`;
+    }
+    if (!res.outcomes.length) {
+      body += `<div class="callout good"><b>Smooth voyage.</b> Nothing struck. ${paid > 0 ? `You paid <b>${fmt(paid)}</b> for protection this trip and used none of it.` : 'You skipped the premium and nothing went wrong.'} That is what most voyages look like, and why someone can go years without a claim. Now see the other side.</div>`;
+    } else if (!anyMine) {
+      body += `<div class="callout warn">Something struck, but <b>none of it was your loss</b>. Under ${c.term.code} the other party held the risk at that moment. Your cover (${paid > 0 ? fmt(paid) : 'none bought'}) paid out nothing because you had no insurable interest.</div>`;
+    } else {
+      body += `<h3 class="sec" style="margin-top:6px">Who pays?</h3>${stackHTML(tot)}`;
+    }
+    body += res.outcomes.map(o => explain(o, c)).join('');
+    const unc = tot.you;
+    body += `<div class="sumrow"><span>Premium and fees paid: <b>${fmt(paid)}</b></span><span>Losses you pay yourself: <b>${fmt(unc)}</b></span><span>Cost of this voyage to you: <b>${fmt(paid + unc)}</b></span></div>`;
+    if (tot.carrier + tot.insurer > 0) body += '<p class="small">Claims take 30 to 90 days to pay (Seneca Polytechnic, 2026), so you carry the cash gap. The bar shows who ends up paying: in real life the insurer pays you first, then recovers the carrier’s share.</p>';
+    body += whatIf(c, res);
+    const claimable = tot.carrier + tot.insurer > 0;
+    return `<section class="panel"><h2><span class="num">5</span> Who pays?</h2>
+      <div class="recap"><span class="tag">${c.cargo.icon} ${c.cargo.name}</span><span class="tag">${E.MODES[c.mode].icon} ${E.MODES[c.mode].label}</span><span class="tag ${c.role}">${c.role === 'seller' ? 'Seller' : 'Buyer'}</span><span class="tag">${c.term.code}</span><span class="tag ${c.cover === 'none' ? 'red' : 'green'}">${esc(coverLabel(c))}</span></div>
+      ${body}
+      <div class="btnrow">
+        <button class="btn primary" data-act="roll">🎲 Roll again</button>
+        <button class="btn" data-act="bad">💥 Show me a bad one</button>
+        <button class="btn dark" data-act="sim">🔁 Run 1,000 voyages</button>
+        <button class="btn" data-act="goto" data-step="3">Change my cover</button>
+        ${claimable ? '<button class="btn" data-act="goto" data-step="6">Bonus: claim race →</button>' : ''}
+      </div></section>`;
+  }
+
+  /* ---------------- step 6: claim race ---------------- */
+  const DOC_ORDER = ['annual', 'transport', 'rules', 'receipt', 'photo', 'cover', 'brochure', 'invoice'];
+  // The claim to practise on: the biggest recoverable loss, preferring one a carrier was involved in
+  // (so the notice-deadline question makes sense) and general average last.
+  function claimTarget(res) {
+    const rec = o => o.carrierPays + o.insurerPays;
+    const cands = res.outcomes.filter(o => o.mine && rec(o) > 0);
+    if (!cands.length) return null;
+    const rank = o => (o.carrierMode ? 0 : o.isGA ? 2 : 1);
+    cands.sort((a, b) => (rank(a) - rank(b)) || (rec(b) - rec(a)));
+    return cands[0];
+  }
+  function view6() {
+    const c = ctx();
+    const res = E.evaluate(c, state.voyage);
+    const prim = claimTarget(res);
+    if (!prim) {
+      return `<section class="panel"><h2><span class="num">6</span> Claim race</h2><div class="callout warn">Nothing to claim on this voyage. Either nothing struck, or nobody owes you anything.</div>${nav(true, false, '')}</section>`;
+    }
+    const rec = o => o.carrierPays + o.insurerPays;
+    const cm = prim.carrierMode || state.mode;
+    const cl = state.claim;
+    const done = cl.done;
+    const rightDeadline = cm;
+    const opts1 = [['ocean', E.NOTICE.ocean], ['air', E.NOTICE.air], ['road', E.NOTICE.road], ['late', 'Within 6 months of delivery']];
+    const q1 = opts1.map(o => {
+      let cls = cl.deadline === o[0] ? 'sel' : '';
+      if (done) cls = o[0] === rightDeadline ? 'ok' : (cl.deadline === o[0] ? 'bad' : '');
+      return `<button class="opt ${cls}" data-act="deadline" data-id="${o[0]}" ${done ? 'disabled' : ''}><span class="mk">${cl.deadline === o[0] || (done && o[0] === rightDeadline) ? '✓' : ''}</span><span>${o[1]}</span></button>`;
+    }).join('');
+    const q2 = DOC_ORDER.map(id => {
+      const d = E.CLAIM_DOCS.find(x => x.id === id);
+      const picked = cl.docs.indexOf(id) >= 0;
+      let cls = picked ? 'sel' : '';
+      if (done) cls = d.must ? 'ok' : (picked ? 'bad' : '');
+      return `<button class="opt ${cls}" data-act="doc" data-id="${id}" ${done ? 'disabled' : ''}><span class="mk">${picked || (done && d.must) ? '✓' : ''}</span><span>${d.text}</span></button>`;
+    }).join('');
+    let result = '';
+    if (done) {
+      const m = cl.mult;
+      const tot = res.totals;
+      const after = { carrier: tot.carrier * m, insurer: tot.insurer * m };
+      after.you = tot.loss - after.carrier - after.insurer;
+      result = `<h3 class="sec">Result</h3>
+        <div class="callout ${m === 1 ? 'good' : 'bad'}"><b>You collect ${Math.round(m * 100)}% of what you were owed.</b> ${cl.deadlineOk ? '✔ Notice deadline: right.' : `✖ Notice deadline: for ${E.MODES[cm].label.toLowerCase()} carriage it is “${E.NOTICE[cm].toLowerCase()}”.`} ${cl.wrongDocs === 0 ? '✔ Documents: all four.' : `✖ Documents: ${cl.wrongDocs} wrong or missing.`}</div>
+        <p class="small">Before: carrier ${fmt(tot.carrier)}, insurer ${fmt(tot.insurer)}, you ${fmt(tot.you)}. After paperwork errors:</p>
+        ${stackHTML(after, 'After the claim race')}
+        <div class="callout"><b>Also in a real claim file:</b> the insurance policy or certificate, copies of your notice of intent to claim, a repair invoice if the goods are repaired, a survey report when the loss is over US$1,000 (arrange it with your insurer; the carrier’s representative should attend), and a subrogation receipt when you’re paid. While you wait, minimize the loss: act as though you had no insurance. Processing takes 30 to 90 days, then the insurer chases the carrier. <span class="cite">(Seneca Polytechnic, 2026)</span></div>
+        <div class="btnrow"><button class="btn primary" data-act="restart">↺ Play again from the top</button><button class="btn" data-act="goto" data-step="5">← Back to who pays</button></div>`;
+    }
+    const ready = cl.deadline && cl.docs.length === 4;
+    return `<section class="panel"><h2><span class="num">6</span> Claim race (bonus)</h2>
+      <p class="lead">Your <b>${esc(prim.ev.name.toLowerCase())}</b> happened during <b>${esc(stageLabel(prim.stage).toLowerCase())}</b> ${prim.carrierMode ? `(${E.MODES[cm].label.toLowerCase()} carriage)` : `(no carrier was holding the goods, so for question 1 use the ${E.MODES[cm].label.toLowerCase()} rule)`}. You’re owed <b>${fmt(rec(prim))}</b> from ${prim.carrierPays > 0 && prim.insurerPays > 0 ? 'the carrier and your insurer' : prim.insurerPays > 0 ? 'your insurer' : 'the carrier'}. Don’t lose it to paperwork.</p>
+      <h3 class="sec" style="margin-top:6px">1. When must you give written notice to the carrier?</h3><div class="opts ${done ? 'lock' : ''}">${q1}</div>
+      <h3 class="sec">2. Pick the 4 documents that every claim file needs <small>(${cl.docs.length} of 4 chosen)</small></h3><div class="opts ${done ? 'lock' : ''}">${q2}</div>
+      ${done ? '' : `<div class="btnrow"><button class="btn primary" data-act="claimGo" ${ready ? '' : 'disabled'}>Send the claim</button></div><p class="small">A missed deadline cuts the payout by 40%. Each wrong or missing document cuts it by 10%.</p>`}
+      ${result}
+      ${done ? '' : nav(true, false, '')}</section>`;
+  }
+
+  /* ---------------- static sections ---------------- */
+  function renderNumbers() {
+    const rows = [
+      ['Road carrier limit', 'CAD $4.41 per kg (CAD $2 per lb)', 'Seneca Polytechnic (2026)'],
+      ['Ocean carrier limit', '2 SDR per kg, or US$500 per shipping unit. The game uses 2 SDR per kg.', 'Seneca Polytechnic (2026)'],
+      ['Air carrier limit', '26 SDR per kg since Dec 28, 2024 (it was 22). The W11 slide still shows 22.', 'Seneca Polytechnic (2026); ICAO (2024)'],
+      ['SDR to CAD', `1 SDR = C$${E.SDR_CAD} (${E.SDR_DATE})`, 'IMF (2026)'],
+      ['Standard cover', '110% of CIF or CIP value (valuation of at least 10%)', 'Seneca Polytechnic (2026)'],
+      ['CIF and CIP', 'CIF: seller buys at least ICC C. CIP: seller buys ICC A.', 'ICC (2019); Seneca Polytechnic (2026)'],
+      ['ICC A rate', '$0.27 per $100 of insured value', 'Seneca Polytechnic (2026)'],
+      ['War and strikes', '$0.03 per $100', 'Seneca Polytechnic (2026)'],
+      ['ICC B and ICC C rates', `$${E.BASE_RATE.B.toFixed(2)} and $${E.BASE_RATE.C.toFixed(2)} per $100`, '<span class="ill">Illustrative</span>'],
+      ['Cargo risk factor', 'About ×0.8 (steel) to ×2.0 (gold) on the A, B or C rate', '<span class="ill">Illustrative</span>'],
+      ['Refrigerated add-on', `$${E.REEFER_RATE.toFixed(2)} per $100`, '<span class="ill">Illustrative</span>'],
+      ['Declared-value fee (air)', `${E.DECLARE_PCT}% of the cargo’s value`, '<span class="ill">Illustrative</span>'],
+      ['Hazard chances', 'Printed on every card. When you carry the whole trip’s risk, something strikes your cargo on roughly 2% to 3.5% of voyages, depending on cargo and route.', '<span class="ill">Illustrative, not actuarial</span>'],
+      ['Size of losses and of the general average bill', 'Each hazard has a loss range. General average: 4% to 15% of cargo value.', '<span class="ill">Illustrative</span>'],
+      ['Claim notice', 'Sea: at delivery, or within 3 days if not visible. Air: 14 days. Road: 60 days.', 'Seneca Polytechnic (2026)'],
+      ['Survey and claim time', 'Survey when the loss is over US$1,000. Claims take 30 to 90 days.', 'Seneca Polytechnic (2026)'],
+      ['Gold heist', '6,600 gold bars (about $20M) plus about $2.5M in foreign currency, April 17, 2023. Court limit: 9,988 SDR, just over C$18,000. Settlement confirmed Aug 28, 2026, amount not disclosed.', 'CP24 (2025); de Vries (2026)']
+    ];
+    $('#numsTable').innerHTML = '<thead><tr><th>What</th><th>Value</th><th>Source</th></tr></thead><tbody>' + rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('') + '</tbody>';
+  }
+  function renderGlossary() {
+    const g = [
+      ['Indemnity', 'Insurance puts you back where you were. It never leaves you better off.'],
+      ['Insurable interest', 'You can only claim if you were at risk when the loss happened. The Incoterm decides who that is.'],
+      ['Utmost good faith', 'Tell the insurer everything that affects the risk. Hide something and the claim can fail.'],
+      ['Warranty', 'A promise in the policy, like “goods professionally packed”. Break it and cover can be lost.'],
+      ['Subrogation', 'After paying you, the insurer steps into your shoes and chases the carrier.'],
+      ['Valuation', 'The insured value is the CIF or CIP value plus at least 10%.'],
+      ['Underwriter', 'The person who decides whether to insure a cargo, and at what price. “An underwriter with few facts is a pessimist.”'],
+      ['General average', 'When cargo is sacrificed or money is spent to save the ship, every cargo owner shares the cost, even owners whose goods arrive fine.'],
+      ['Open policy and individual policy', 'An open policy covers every shipment automatically (you report them). An individual policy covers one shipment.']
+    ];
+    $('#glossBody').innerHTML = '<details><summary>Words you’ll see in the game</summary><div class="in"><dl style="margin:0">' + g.map(x => `<dt style="font-weight:800;color:var(--navy);margin-top:10px">${x[0]}</dt><dd style="margin:2px 0 0">${x[1]}</dd>`).join('') + '</dl><p class="small" style="margin-top:12px">Source: Seneca Polytechnic (2026).</p></div></details>';
+  }
+  function renderFwdStat() {
+    const cg = E.CARGO_BY_ID.laptops;
+    const c = { cargo: cg, mode: 'ocean', role: 'buyer', term: E.TERMS.FOB, cover: 'none', warStrikes: false, reefer: false, declare: false, odds: 1 };
+    const s = E.simulate(c, 20000, E.makeRng(11));
+    const f = s.eventFreq;
+    $('#fwdStat').innerHTML = `<b>In the game:</b> for a buyer on FOB terms, something goes wrong on about <b>${(f * 100).toFixed(1)}%</b> of voyages (illustrative odds). Over 100 shipments there’s still roughly a <b>${Math.round(100 * Math.pow(1 - f, 100))}%</b> chance of never seeing a problem. A clean record proves less than it feels like.`;
+  }
+
+  /* ---------------- presets ---------------- */
+  function presetHeist() {
+    Object.assign(state, { cargoId: 'gold', mode: 'air', role: 'buyer', term: 'FCA', cover: 'none', ws: false, reefer: false, declare: false, odds: 1 });
+    invalidate();
+    const v = E.rollVoyage(ctx(), Math.random, { force: { id: 'theft', stage: 4, sev: 1 } });
+    v.cards.forEach(cd => { if (!cd.forced) { cd.happened = false; cd.stage = null; cd.sev = null; cd.roll = 99.99; } });
+    state.voyage = v; state.fresh = false; state.heist = true;
+    state.step = 5; render();
+    window.scrollTo({ top: $('#app').getBoundingClientRect().top + window.scrollY - 62, behavior: reduceMotion() ? 'auto' : 'smooth' });
+  }
+  function presetFwd() {
+    Object.assign(state, { cargoId: 'laptops', mode: 'ocean', role: 'buyer', term: 'FOB', cover: 'none', ws: false, reefer: false, declare: false, odds: 1 });
+    invalidate();
+    runSim();
+  }
+
+  /* ---------------- actions ---------------- */
+  const actions = {
+    goto(d) { go(+d.step); },
+    next() { go(state.step + 1); },
+    back() { go(state.step - 1); },
+    cargo(d) {
+      if (state.cargoId !== d.id) {
+        state.cargoId = d.id;
+        const c = cargo();
+        state.mode = c.defMode; state.term = E.defaultTermFor(state.mode);
+        state.cover = 'none'; state.ws = false; state.reefer = false; state.declare = false;
+        invalidate();
+      }
+      go(2);
+    },
+    mode(d) {
+      state.mode = d.id;
+      if (!E.termAllowed(E.TERMS[state.term], state.mode)) state.term = E.defaultTermFor(state.mode);
+      if (state.mode !== 'air') state.declare = false;
+      bumpCover(); invalidate(); render();
+    },
+    role(d) { state.role = d.id; invalidate(); render(); },
+    term(d) {
+      const t = E.TERMS[d.id];
+      if (!E.termAllowed(t, state.mode)) return;
+      state.term = d.id; bumpCover(); invalidate(); render();
+    },
+    cover(d) {
+      state.cover = d.id;
+      if (d.id === 'none') { state.ws = false; state.reefer = false; }
+      invalidate(); render();
+    },
+    toggle(d) {
+      if (d.k === 'ws') state.ws = !state.ws;
+      if (d.k === 'reefer') state.reefer = !state.reefer;
+      if (d.k === 'declare') state.declare = !state.declare;
+      invalidate(); render();
+    },
+    odds(d) { state.odds = +d.v; invalidate(); render(); },
+    roll() { startVoyage({}); },
+    bad() { startVoyage({ bad: true }); },
+    sim() { runSim(); },
+    deadline(d) { state.claim.deadline = d.id; render(); },
+    doc(d) {
+      const a = state.claim.docs, i = a.indexOf(d.id);
+      if (i >= 0) a.splice(i, 1); else if (a.length < 4) a.push(d.id);
+      render();
+    },
+    claimGo() {
+      const c = ctx();
+      const res = E.evaluate(c, state.voyage);
+      const prim = claimTarget(res);
+      if (!prim) return;
+      const cm = prim.carrierMode || state.mode;
+      const r = E.claimMultiplier(state.claim.deadline === cm, state.claim.docs);
+      state.claim.done = true; state.claim.mult = r.multiplier; state.claim.wrongDocs = r.wrongDocs; state.claim.deadlineOk = r.deadlineOk;
+      render();
+    },
+    restart() { invalidate(); state.step = 1; render(); window.scrollTo({ top: 0, behavior: 'auto' }); },
+    presetHeist, presetFwd
+  };
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-act]');
+    if (!t || t.disabled) return;
+    const fn = actions[t.dataset.act];
+    if (fn) fn(t.dataset, t);
+  });
+
+  /* ---------------- render ---------------- */
+  const views = { 1: view1, 2: view2, 3: view3, 4: view4, 5: view5, 6: view6 };
+  function render() {
+    if (!canGo(state.step)) state.step = state.cargoId ? (state.mode && state.term ? 4 : 2) : 1;
+    renderStepper();
+    $('#app').innerHTML = views[state.step]();
+    if (state.step === 4 && state.fresh && !state.running) runReveal();
+  }
+
+  /* ---------------- boot ---------------- */
+  renderNumbers(); renderGlossary(); renderFwdStat();
+  const ce = E.classExample();
+  const sc = $('#selfcheck');
+  if (sc) sc.textContent = ce.ok ? 'Self-check: the class worked example gives an insured value of C$113,639.90 and a premium of C$340.92. ✔' : 'Self-check failed: the premium calculator does not match the class example.';
+  if (typeof console !== 'undefined') console.log('Class example check:', ce.ok ? 'OK' : 'MISMATCH', ce.build);
+  render();
+})();
+
+</script>
+</body>
+</html>
